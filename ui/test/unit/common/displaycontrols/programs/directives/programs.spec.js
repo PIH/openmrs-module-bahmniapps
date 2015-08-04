@@ -8,7 +8,7 @@ describe("Program display control", function () {
     beforeEach(module('ngHtml2JsPreprocessor'));
 
     beforeEach(module(function ($provide) {
-        programService = jasmine.createSpyObj('programService', ['getActiveProgramsForAPatient']);
+        programService = jasmine.createSpyObj('programService', ['getPatientPrograms']);
         $provide.value('programService', programService);
     }));
 
@@ -53,7 +53,7 @@ describe("Program display control", function () {
 
 
     var mockedAllProgramsForPatient = function (data) {
-        programService.getActiveProgramsForAPatient.and.callFake(function () {
+        programService.getPatientPrograms.and.callFake(function () {
             return {
                 success: function (callback) {
                     return callback(data);
