@@ -56,7 +56,7 @@ angular.module('bahmni.common.domain')
         var savePatientProgram = function(patientProgramUuid, stateUuid, onDate, voided) {
             var req = {
                 url: Bahmni.Common.Constants.programEnrollPatientUrl + "/" + patientProgramUuid,
-                content: patientProgram
+                content: constructStatesPayload(stateUuid, onDate, voided),
                 headers: {"Content-Type": "application/json"}
             };
             return $http.post(req.url, req.content, req.headers);

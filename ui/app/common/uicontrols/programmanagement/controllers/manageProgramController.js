@@ -41,6 +41,8 @@ angular.module('bahmni.common.uicontrols.programmanagment')
 
             var successCallback = function (data) {
                 messagingService.showMessage("info", "Saved");
+                $scope.programSelected = null;
+                $scope.workflowStateSelected = null;
                 updateActiveProgramsList();
             };
 
@@ -146,15 +148,16 @@ angular.module('bahmni.common.uicontrols.programmanagment')
 
             $scope.getWorkflowStatesWithoutCurrent = function(patientProgram){
                 var currState = getCurrentState(patientProgram);
-                if(_.isUndefined(currState)){
-                    return patientProgram.program.allWorkflows[0].states;
+                if(currState){
+                    return _.reject(patientProgram.program.allWorkflows[0].states, function(d){ return d.uuid == currState.state.uuid; });
                 }
-                return _.reject(patientProgram.program.allWorkflows[0].states, function(d){ return d.uuid == currState.state.uuid; });
+                return patientProgram.program.allWorkflows[0].states;
             };
 
             $scope.savePatientProgram = function (patientProgram) {
                 var startDate = getCurrentDate();
-                var currentStateDate = DateUtil.parse(getCurrentState(patientProgram).startDate);
+                var currentState = getCurrentState(patientProgram);
+                var currentStateDate = currentState ? DateUtil.parse(currentState.startDate): null;
 
                 if (DateUtil.isBeforeDate(startDate, currentStateDate)) {
                     var formattedCurrentStateDate = DateUtil.formatDateWithoutTime(currentStateDate);
@@ -179,9 +182,11 @@ angular.module('bahmni.common.uicontrols.programmanagment')
 
             $scope.endPatientProgram = function(patientProgram) {
                 var dateCompleted = getCurrentDate();
-                var currentStateDate = DateUtil.parse(getCurrentState(patientProgram).startDate);
+                var currentState = getCurrentState(patientProgram);
+                var currentStateDate = currentState ? DateUtil.parse(currentState.startDate): null;
 
-                if (DateUtil.isBeforeDate(dateCompleted, currentStateDate)) {
+
+                if (currentState && DateUtil.isBeforeDate(dateCompleted, currentStateDate)) {
                     var formattedCurrentStateDate = DateUtil.formatDateWithoutTime(currentStateDate);
                     messagingService.showMessage("formError", "Program cannot be ended earlier than current state (" + formattedCurrentStateDate + ")");
                     return;
@@ -217,6 +222,10 @@ angular.module('bahmni.common.uicontrols.programmanagment')
                         $scope.programWorkflowStates.push(state);
                     });
                 }
+            };
+
+            $scope.hasStates = function(program){
+                return program && !_.isEmpty(program.allWorkflows) && !_.isEmpty(program.allWorkflows[0].states)
             };
 
             init();
