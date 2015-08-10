@@ -59,11 +59,15 @@ angular.module('bahmni.common.uicontrols.programmanagment')
             }
         };
 
-        var getDataModel = function(program) {
-            var states = _.sortBy(_.map(program.states, function(stateObject) {
+        var getActiveProgramStates = function(patientProgram){
+            return _.reject(patientProgram.states, function(st) {return st.voided});
+        };
+
+        var getDataModel = function(patientProgram) {
+            var states = _.sortBy(_.map(getActiveProgramStates(patientProgram), function(stateObject) {
                 return {state: stateObject.state.concept.display, date: new Date(stateObject.startDate)}
             }),'date');
-            var completed = isProgramCompleted(program);
+            var completed = isProgramCompleted(patientProgram);
             return {states: states, completed: completed};
         };
 

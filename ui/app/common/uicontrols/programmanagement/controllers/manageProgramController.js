@@ -57,6 +57,9 @@ angular.module('bahmni.common.uicontrols.programmanagment')
             };
 
             var objectDeepFind = function(obj, path) {
+                if(_.isUndefined(obj)){
+                    return undefined;
+                }
                 var paths = path.split('.')
                     , current = obj
                     , i;
@@ -115,11 +118,37 @@ angular.module('bahmni.common.uicontrols.programmanagment')
             };
 
             var getCurrentState = function(patientProgram){
-                return _.find(patientProgram.states, {endDate: null});
+                return _.find(getActiveProgramStates(patientProgram), {endDate: null});
             };
+
+            $scope.getCurrentStateDisplayName = function(patientProgram){
+                var currState = getCurrentState(patientProgram);
+                var displayName = objectDeepFind(currState, 'state.concept.display');
+                return displayName || 'No state';
+            };
+
+            var getActiveProgramStates = function(patientProgram){
+                return _.reject(patientProgram.states, function(st) {return st.voided});
+            };
+
+            $scope.removePatientState = function(patientProgram){
+                var currStateUuid = objectDeepFind(getCurrentState(patientProgram), 'state.uuid');
+                spinner.forPromise(
+                    programService.savePatientProgram(patientProgram.uuid, currStateUuid, null, true)
+                        .then(successCallback, failureCallback)
+                );
+            };
+
+            $scope.canRemovePatientState = function(patientProgram){
+                return (getActiveProgramStates(patientProgram).length > 0);
+            };
+
 
             $scope.getWorkflowStatesWithoutCurrent = function(patientProgram){
                 var currState = getCurrentState(patientProgram);
+                if(_.isUndefined(currState)){
+                    return patientProgram.program.allWorkflows[0].states;
+                }
                 return _.reject(patientProgram.program.allWorkflows[0].states, function(d){ return d.uuid == currState.state.uuid; });
             };
 

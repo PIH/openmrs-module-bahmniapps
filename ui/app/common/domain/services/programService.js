@@ -38,26 +38,25 @@ angular.module('bahmni.common.domain')
             return $http.get(req.url, {params: req.params});
         };
 
-        var constructStatesPayload = function(stateUuid, onDate){
+        var constructStatesPayload = function(stateUuid, onDate, voided){
             var states =[];
             if (stateUuid) {
                 states.push({
                         state: {
                             uuid: stateUuid
                         },
-                        startDate: onDate
+                        startDate: onDate,
+                        voided: voided
                     }
                 );
             }
             return states;
         };
 
-        var savePatientProgram = function(patientProgramUuid, stateUuid, onDate) {
+        var savePatientProgram = function(patientProgramUuid, stateUuid, onDate, voided) {
             var req = {
                 url: Bahmni.Common.Constants.programEnrollPatientUrl + "/" + patientProgramUuid,
-                content: {
-                    states: constructStatesPayload(stateUuid, onDate)
-                },
+                content: patientProgram
                 headers: {"Content-Type": "application/json"}
             };
             return $http.post(req.url, req.content, req.headers);
