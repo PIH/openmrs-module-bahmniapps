@@ -199,6 +199,9 @@ angular.module('bahmni.registration')
                 var patientIdentifier = $scope.searchParameters.registrationNumber;
                 preferences.identifierPrefix = $scope.searchParameters.identifierPrefix ? $scope.searchParameters.identifierPrefix.prefix : "";
 
+                // strip off the identifier prefix from the identifier itself if it exists
+                patientIdentifier = patientIdentifier.replace(new RegExp('^' + preferences.identifierPrefix, 'i'), '');
+
                 $location.search({
                     identifierPrefix: preferences.identifierPrefix,
                     registrationNumber: $scope.searchParameters.registrationNumber,
