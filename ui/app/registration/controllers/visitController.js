@@ -164,15 +164,17 @@ angular.module('bahmni.registration')
             //End :: Registration Page validation
 
             var afterSave = function () {
-
-                var nextState = appService.getAppDescriptor().getConfigValue('afterVisitSaveTransitionToState');
-
-                $state.transitionTo(nextState ? nextState : $state.current, $state.params, {
-                    reload: true,
-                    inherit: false,
-                    notify: true
-                });
-
+                var forwardUrl = appService.getAppDescriptor().getConfigValue("afterVisitSaveForwardUrl");
+                if (forwardUrl != null) {
+                    $location.url(appService.getAppDescriptor().formatUrl(forwardUrl, {'patientUuid': patientUuid}));
+                }
+                else {
+                    $state.transitionTo($state.current, $state.params, {
+                        reload: true,
+                        inherit: false,
+                        notify: true
+                    });
+                }
                 messagingService.showMessage('info', 'REGISTRATION_LABEL_SAVED');
             };
 

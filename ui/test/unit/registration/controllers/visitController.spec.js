@@ -107,7 +107,7 @@ describe('VisitController', function () {
         patientService = jasmine.createSpyObj('patientService', ['get','updateImage']);
         visitService = jasmine.createSpyObj('visitService', ['search', 'endVisit', 'getVisitSummary']);
         appService = jasmine.createSpyObj('appService', ['getDescription', 'getAppDescriptor']);
-        appDescriptor = jasmine.createSpyObj('appDescriptor', ['getConfigValue', 'getExtensions']);
+        appDescriptor = jasmine.createSpyObj('appDescriptor', ['getConfigValue', 'getExtensions', 'formatUrl']);
         appService.getAppDescriptor.and.returnValue(appDescriptor);
         appDescriptor.getExtensions.and.returnValue([]);
         patientMapper = jasmine.createSpyObj('patientMapper', ['map']);
@@ -179,7 +179,7 @@ describe('VisitController', function () {
             scope.patient = {uuid: "21308498-2502-4495-b604-7b704a55522d"};
         });
 
-        it("should validate save and reload current page if afterVisitSaveTransitionToState not specified", function (done) {
+        it("should validate save and reload current page if afterVisitSaveForwardUrl not specified", function (done) {
             state.expectTransitionTo(state.current);
             var submit = scope.submit();
             submit.then(function (response) {
@@ -190,21 +190,26 @@ describe('VisitController', function () {
             });
         });
 
-        it("should validate save and redirect to state specify by afterVisitSaveTransitionToState", function (done) {
+        it("should validate save and redirect to url specify by afterVisitSaveForwardUrl", function (done) {
+
             appDescriptor.getConfigValue.and.callFake(function(value) {
-                if (value == 'afterVisitSaveTransitionToState') {
-                    return "search";
+                if (value == 'afterVisitSaveForwardUrl') {
+                    return "/search";
                 }
                 else {
                     return "";
                 }
             });
-            state.expectTransitionTo("search");
+
+            appDescriptor.formatUrl.and.callFake(function(value) {
+                return value;
+            });
+
             var submit = scope.submit();
             submit.then(function (response) {
                 expect(encounterService.create).toHaveBeenCalled();
                 expect(messagingService.showMessage).toHaveBeenCalledWith('info', 'REGISTRATION_LABEL_SAVED');
-                state.ensureAllTransitionsHappened();
+                expect(location.url).toHaveBeenCalledWith("/search");
                 done();
             });
         });
