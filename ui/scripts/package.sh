@@ -13,8 +13,7 @@ rm -rf $ROOT_DIR/target/${ZIP_FILE_NAME}*.zip
 npm install
 bower install
 
-pids=$(pgrep Xvfb)
-if [ -n "$pids" ]; then
+if [ -z $(pgrep Xvfb) ]; then
     export DISPLAY=:99
     Xvfb :99 &
 else
