@@ -194,7 +194,7 @@ describe('VisitController', function () {
 
             appDescriptor.getConfigValue.and.callFake(function(value) {
                 if (value == 'afterVisitSaveForwardUrl') {
-                    return "/search";
+                    return "#/search";
                 }
                 else {
                     return "";
@@ -205,11 +205,15 @@ describe('VisitController', function () {
                 return value;
             });
 
+            window.location = {
+                href: ""
+            }
+
             var submit = scope.submit();
             submit.then(function (response) {
                 expect(encounterService.create).toHaveBeenCalled();
                 expect(messagingService.showMessage).toHaveBeenCalledWith('info', 'REGISTRATION_LABEL_SAVED');
-                expect(location.url).toHaveBeenCalledWith("/search");
+                expect(window.location.href).toBe('#/search');
                 done();
             });
         });
