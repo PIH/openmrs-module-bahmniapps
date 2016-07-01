@@ -285,7 +285,7 @@ describe('SearchPatientController', function () {
             var defaultSearchAddressField = undefined;
             scope.searchById();
 
-            expect(patientResource.search).toHaveBeenCalledWith(undefined, "20001", "GAN", defaultSearchAddressField, undefined, undefined, undefined, undefined, undefined, undefined);
+            expect(patientResource.search).toHaveBeenCalledWith(undefined, "20001", "SEM", defaultSearchAddressField, undefined, undefined, undefined, undefined, undefined, undefined);
         });
 
         it('should not strip prefix from registrationNumber if found elsewhere than as a prefix', function () {
