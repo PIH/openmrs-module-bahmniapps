@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export LANG=en_US.UTF-8
-set -e
+
 
 BASE_DIR=`dirname $0`
 ROOT_DIR=$BASE_DIR/..
