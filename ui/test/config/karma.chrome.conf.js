@@ -13,6 +13,7 @@ module.exports = function (config) {
             'app/components/angular-route/angular-route.js',
             'app/components/angular-sanitize/angular-sanitize.js',
             'app/components/jquery/jquery.js',
+            'app/components/jquery.cookie/jquery.cookie.js',
             'app/components/jasmine-jquery/lib/jasmine-jquery.js',
             'app/components/angular-mocks/angular-mocks.js',
             'app/components/ngInfiniteScroll/build/ng-infinite-scroll.js',
@@ -51,7 +52,6 @@ module.exports = function (config) {
             'app/admin/**/*.js',
             'app/adt/**/*.js',
             'app/clinical/**/*.js',
-            'app/dhis/**/*.js',
             'app/document-upload/**/*.js',
             'app/home/**/*.js',
             'app/orders/**/*.js',
@@ -83,7 +83,7 @@ module.exports = function (config) {
             "test/unit/common/ui-helper/controllers/androidAppUpdateController.spec.js",
             'test/unit/common/displaycontrols/obsVsObsFlowSheet/directives/obsToObsFlowSheet.spec.js',
             'app/clinical/dashboard/services/diseaseTemplateService.js',
-
+            'app/clinical/displaycontrols/investigationresults/services/labOrderResultService.js',
             'test/unit/orders/services/orderTypeService.spec.js',
             'test/unit/common/patient/services/patientService.spec.js',
             'test/unit/registration/services/patientService.spec.js',
@@ -98,11 +98,12 @@ module.exports = function (config) {
             'test/unit/common/domain/services/visitService.spec.js',
             'test/unit/common/domain/services/observationsService.spec.js',
             'test/unit/clinical/services/diseaseTemplateService.spec.js',
-
+            'test/unit/clinical/services/labOrderResultService.spec.js',
             'app/common/util/androidDateTimeFormatter.js',
             "test/unit/common/util/androidDateTimeFormatter.spec.js",
             'test/unit/registration/controllers/*.js',
-            'test/unit/**/offline/android/*.js'
+            'test/unit/**/offline/android/*.js',
+            'test/unit/clinical/offline/androidLabOrderResultsService.spec.js'
         ],
         reporters: ['junit', 'progress', 'coverage'],
         preprocessors: {
@@ -110,7 +111,6 @@ module.exports = function (config) {
             'app/adt/**/*.js': ['coverage'],
             'app/clinical/**/*.js': ['coverage'],
             'app/common/**/*.js': ['coverage'],
-            'app/dhis/**/*.js': ['coverage'],
             'app/document-upload/**/*.js': ['coverage'],
             'app/home/**/*.js': ['coverage'],
             'app/orders/**/*.js': ['coverage'],

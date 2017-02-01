@@ -9,8 +9,9 @@ Bahmni.Common.PatientSearch.Search = function (searchTypes) {
     self.searchResults = [];
     self.activePatients = [];
     self.navigated = false;
+    self.searchColumns = self.searchType && self.searchType.searchColumns ? self.searchType.searchColumns : ["identifier", "name"];
     angular.forEach(searchTypes, function (searchType) {
-        searchType.patientCount = "..."
+        searchType.patientCount = "...";
     });
 
     self.switchSearchType = function (searchType) {
@@ -27,7 +28,7 @@ Bahmni.Common.PatientSearch.Search = function (searchTypes) {
 
     self.markPatientEntry = function () {
         self.startPatientSearch = true;
-        window.setTimeout(function () {
+        window.setTimeout(function () { // eslint-disable-line angular/timeout-service
             self.startPatientSearch = false;
         });
     };
@@ -83,10 +84,15 @@ Bahmni.Common.PatientSearch.Search = function (searchTypes) {
         return showPatientCount(searchType) && self.searchParameter;
     };
 
-    function mapPatient(patient) {
-        patient.name = patient.name || (patient.givenName + ' ' + patient.familyName);
-        patient.display = patient.identifier + " - " + patient.name;
-        patient.image = patient.image || Bahmni.Common.Constants.patientImageUrl + patient.uuid + ".jpeg";
+    function mapPatient (patient) {
+        if (patient.name || patient.givenName || patient.familyName) {
+            patient.name = patient.name || (patient.givenName + ' ' + patient.familyName);
+        }
+        patient.display = _.map(self.searchColumns, function (column) {
+            return patient[column];
+        }).join(" - ");
+
+        patient.image = Bahmni.Common.Constants.patientImageUrlByPatientUuid + patient.uuid;
         return patient;
     }
 

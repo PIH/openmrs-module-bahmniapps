@@ -11,36 +11,36 @@ angular.module('consultation', ['ui.router', 'bahmni.clinical', 'bahmni.common.c
     'bahmni.common.displaycontrol.patientprofile', 'bahmni.common.displaycontrol.diagnosis', 'RecursionHelper', 'ngSanitize',
     'bahmni.common.orders', 'bahmni.common.displaycontrol.orders', 'bahmni.common.displaycontrol.prescription',
     'bahmni.common.displaycontrol.navigationlinks', 'bahmni.common.displaycontrol.programs',
-    'bahmni.common.displaycontrol.pacsOrders','bahmni.common.uicontrols', 'bahmni.common.uicontrols.programmanagment', 'pascalprecht.translate',
-    'ngCookies','monospaced.elastic','bahmni.common.bacteriologyresults','bahmni.common.displaycontrol.bacteriologyresults',
+    'bahmni.common.displaycontrol.pacsOrders', 'bahmni.common.uicontrols', 'bahmni.common.uicontrols.programmanagment', 'pascalprecht.translate',
+    'ngCookies', 'monospaced.elastic', 'bahmni.common.bacteriologyresults', 'bahmni.common.displaycontrol.bacteriologyresults',
     'bahmni.common.displaycontrol.obsVsObsFlowSheet', 'bahmni.common.displaycontrol.chronicTreatmentChart',
     'bahmni.common.displaycontrol.forms', 'bahmni.common.displaycontrol.drugOrderDetails', 'bahmni.common.offline',
     'bahmni.common.displaycontrol.hint', 'bahmni.common.displaycontrol.drugOrdersSection', 'bahmni.common.attributeTypes',
-    'bahmni.common.services','bahmni.common.models']);
+    'bahmni.common.services', 'bahmni.common.models']);
 angular.module('consultation')
     .config(['$stateProvider', '$httpProvider', '$urlRouterProvider', '$bahmniTranslateProvider', '$compileProvider',
         function ($stateProvider, $httpProvider, $urlRouterProvider, $bahmniTranslateProvider, $compileProvider) {
-        $urlRouterProvider.otherwise('/' + Bahmni.Clinical.Constants.defaultExtensionName + '/patient/search');
-        $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|ftp|mailto|chrome-extension|file):/);
-        $compileProvider.imgSrcSanitizationWhitelist(/^\s*(https?|local|data|blob|chrome-extension):/);
-        var patientSearchBackLink = {
-            label: "",
-            state: "search.patientsearch",
-            accessKey: "p",
-            id: "patients-link",
-            icon: "fa-users"
-        };
-        var homeBackLink = {label: "", url: "../home/index.html", accessKey: "h", icon: "fa-home"};
+            $urlRouterProvider.otherwise('/' + Bahmni.Clinical.Constants.defaultExtensionName + '/patient/search');
+            $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|ftp|mailto|chrome-extension|file):/);
+            $compileProvider.imgSrcSanitizationWhitelist(/^\s*(https?|local|data|blob|chrome-extension):/);
+            var patientSearchBackLink = {
+                label: "",
+                state: "search.patientsearch",
+                accessKey: "p",
+                id: "patients-link",
+                icon: "fa-users"
+            };
+            var homeBackLink = {label: "", url: "../home/index.html", accessKey: "h", icon: "fa-home"};
 
         // @if DEBUG='production'
-        $compileProvider.debugInfoEnabled(false);
+            $compileProvider.debugInfoEnabled(false);
         // @endif
 
         // @if DEBUG='development'
-        $compileProvider.debugInfoEnabled(true);
+            $compileProvider.debugInfoEnabled(true);
         // @endif
 
-        $stateProvider
+            $stateProvider
             .state('search', {
                 abstract: true,
                 views: {
@@ -122,8 +122,11 @@ angular.module('consultation')
                     }
                 },
                 resolve: {
-                    visitHistory: function (visitHistoryInitialization, $stateParams) {
-                        return visitHistoryInitialization($stateParams.patientUuid);
+                    offlineDb: function (offlineDbInitialization) {
+                        return offlineDbInitialization();
+                    },
+                    visitHistory: function (offlineDb, visitHistoryInitialization, $stateParams, $rootScope) {
+                        return visitHistoryInitialization($stateParams.patientUuid, $rootScope.visitLocation);
                     },
                     retrospectiveIntialization: function (retrospectiveEntryService) {
                         return retrospectiveEntryService.initializeRetrospectiveEntry();
@@ -132,7 +135,7 @@ angular.module('consultation')
                         return consultationInitialization(
                             $stateParams.patientUuid, $stateParams.encounterUuid, $stateParams.programUuid, $stateParams.enrollment);
                     },
-                    dashboardInitialization: function ($rootScope, initialization, patientContext, clinicalDashboardConfig, userService) {
+                    dashboardInitialization: function (offlineDb, $rootScope, initialization, patientContext, clinicalDashboardConfig, userService) {
                         return clinicalDashboardConfig.load().then(function () {
                             $rootScope.currentUser.addToRecentlyViewed(patientContext.patient, clinicalDashboardConfig.getMaxRecentlyViewedPatients());
                             return userService.savePreferences();
@@ -140,6 +143,9 @@ angular.module('consultation')
                     },
                     visitSummary: function (visitSummaryInitialization, initialization, visitHistory) {
                         return visitHistory.activeVisit ? visitSummaryInitialization(visitHistory.activeVisit.uuid) : null;
+                    },
+                    visitConfig: function (initialization, visitTabConfig) {
+                        return visitTabConfig.load();
                     }
                 }
             })
@@ -162,7 +168,8 @@ angular.module('consultation')
             .state('patient.dashboard.show.observations', {
                 url: '/concept-set-group/:conceptSetGroupName',
                 params: {
-                    cachebuster: null
+                    cachebuster: null,
+                    lastOpenedTemplate: null
                 },
                 views: {
                     'consultation-content': {
@@ -206,8 +213,8 @@ angular.module('consultation')
                     cachebuster: null
                 },
                 resolve: {
-                    activeDrugOrders: function (TreatmentService, $stateParams) {
-                        return TreatmentService.getActiveDrugOrders($stateParams.patientUuid, $stateParams.dateEnrolled, $stateParams.dateCompleted);
+                    activeDrugOrders: function (treatmentService, $stateParams) {
+                        return treatmentService.getActiveDrugOrders($stateParams.patientUuid, $stateParams.dateEnrolled, $stateParams.dateCompleted);
                     }
                 },
                 views: {
@@ -310,7 +317,10 @@ angular.module('consultation')
                     }
                 },
                 resolve: {
-                    visitHistory: function (visitHistoryInitialization, $stateParams) {
+                    offlineDb: function (offlineDbInitialization) {
+                        return offlineDbInitialization();
+                    },
+                    visitHistory: function (offlineDb, visitHistoryInitialization, $stateParams) {
                         return visitHistoryInitialization($stateParams.patientUuid);
                     }
                 }
@@ -339,11 +349,55 @@ angular.module('consultation')
                     }
                 },
                 resolve: {
+                    offlineDb: function (offlineDbInitialization) {
+                        return offlineDbInitialization();
+                    },
+                    visitSummary: function (offlineDb, visitSummaryInitialization, $stateParams) {
+                        return visitSummaryInitialization($stateParams.visitUuid);
+                    }
+                }
+            })
+            .state('patient.dashboard.visitPrint', {
+                url: '/dashboard/visit/:visitUuid/:tab/:print',
+                views: {
+                    'dashboard-content': {
+                        template: '<div>Print is getting ready</div>',
+                        controller: 'VisitController'
+                    },
+                    'print-content': {
+                        templateUrl: 'common/views/visit.html'
+                    }
+                },
+                resolve: {
                     visitSummary: function (visitSummaryInitialization, $stateParams) {
                         return visitSummaryInitialization($stateParams.visitUuid);
+                    }
+                }
+            })
+            .state('patient.dashboard.observation', {
+                url: '/dashboard/observation/:observationUuid',
+                data: {
+                    backLinks: [homeBackLink]
+                },
+                resolve: {
+                    observation: function (observationsService, $stateParams) {
+                        return observationsService.getByUuid($stateParams.observationUuid).then(function (results) {
+                            return results.data;
+                        });
+                    }
+                },
+                views: {
+                    'dashboard-header': {
+                        templateUrl: '../common/ui-helper/header.html',
+                        controller: 'PatientListHeaderController'
                     },
-                    visitConfig: function (initialization, visitTabConfig) {
-                        return visitTabConfig.load();
+                    'dashboard-content': {
+                        controller: function ($scope, observation, patientContext) {
+                            $scope.observation = observation;
+                            $scope.patient = patientContext.patient;
+                        },
+                        template: '<patient-context patient="patient"></patient-context>' +
+                        '<edit-observation  observation="observation" concept-set-name="{{observation.concept.name}}" concept-display-name="{{observation.conceptNameToDisplay}}"></edit-observation>'
                     }
                 }
             })
@@ -363,7 +417,10 @@ angular.module('consultation')
                     }
                 },
                 resolve: {
-                    visitSummary: function (visitSummaryInitialization, $stateParams) {
+                    offlineDb: function (offlineDbInitialization) {
+                        return offlineDbInitialization();
+                    },
+                    visitSummary: function (offlineDb, visitSummaryInitialization, $stateParams) {
                         return visitSummaryInitialization($stateParams.visitUuid, $stateParams.tab);
                     },
                     visitConfig: function (initialization, visitTabConfig) {
@@ -400,38 +457,40 @@ angular.module('consultation')
                     }
                 },
                 resolve: {
-                    visitHistory: function (visitHistoryInitialization, $stateParams) {
+                    offlineDb: function (offlineDbInitialization) {
+                        return offlineDbInitialization();
+                    },
+                    visitHistory: function (offlineDb, visitHistoryInitialization, $stateParams) {
                         return visitHistoryInitialization($stateParams.patientUuid);
                     }
                 }
             });
 
-        $httpProvider.defaults.headers.common['Disable-WWW-Authenticate'] = true;
+            $httpProvider.defaults.headers.common['Disable-WWW-Authenticate'] = true;
 
-        $bahmniTranslateProvider.init({app: 'clinical', shouldMerge: true});
-    }]).run(['stateChangeSpinner', '$rootScope', 'offlineService', 'schedulerService',
-        function (stateChangeSpinner, $rootScope, offlineService, schedulerService) {
-        FastClick.attach(document.body);
-        stateChangeSpinner.activate();
-        var cleanUpStateChangeSuccess = $rootScope.$on('$stateChangeSuccess', function () {
-            window.scrollTo(0, 0);
-        });
-        var cleanUpNgDialogOpened = $rootScope.$on('ngDialog.opened', function () {
-           $('html').addClass('ngdialog-open');
-        });
-        var cleanUpNgDialogClosing = $rootScope.$on('ngDialog.closing', function () {
-            $('html').removeClass('ngdialog-open');
-        });
+            $bahmniTranslateProvider.init({app: 'clinical', shouldMerge: true});
+        }]).run(['stateChangeSpinner', '$rootScope', 'offlineService', 'schedulerService',
+            function (stateChangeSpinner, $rootScope, offlineService, schedulerService) {
+                FastClick.attach(document.body);
+                stateChangeSpinner.activate();
+                var cleanUpStateChangeSuccess = $rootScope.$on('$stateChangeSuccess', function () {
+                    window.scrollTo(0, 0);
+                });
+                var cleanUpNgDialogOpened = $rootScope.$on('ngDialog.opened', function () {
+                    $('html').addClass('ngdialog-open');
+                });
+                var cleanUpNgDialogClosing = $rootScope.$on('ngDialog.closing', function () {
+                    $('html').removeClass('ngdialog-open');
+                });
 
-        $rootScope.$on("$destroy", function() {
-            cleanUpStateChangeSuccess();
-            cleanUpNgDialogOpened();
-            cleanUpNgDialogClosing();
-        });
+                $rootScope.$on("$destroy", function () {
+                    cleanUpStateChangeSuccess();
+                    cleanUpNgDialogOpened();
+                    cleanUpNgDialogClosing();
+                });
 
-        if (offlineService.isChromeApp() || offlineService.isAndroidApp()) {
-            schedulerService.sync();
-        }
-    }]);
-
+                if (offlineService.isChromeApp() || offlineService.isAndroidApp()) {
+                    schedulerService.sync();
+                }
+            }]);
 

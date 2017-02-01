@@ -26,6 +26,7 @@ describe('VisitController', function () {
     var location;
     var window;
     var bahmniCookieStore;
+    var offlineService;
 
     var stubAllPromise = function () {
         return {
@@ -45,7 +46,7 @@ describe('VisitController', function () {
     var searchActiveVisits = function (data) {
         return {
             then: function (successFn) {
-                successFn({data : {results: data}});
+                successFn({data: {results: data}});
             }
         };
     };
@@ -84,30 +85,35 @@ describe('VisitController', function () {
     };
 
     beforeEach(module('bahmni.registration'));
+    beforeEach(module('bahmni.common.offline'));
     beforeEach(module('stateMock'));
-    beforeEach(module('pascalprecht.translate'))
-    beforeEach(inject(['$injector', '$timeout', '$q', '$rootScope', '$state', '$translate', function ($injector, timeout, $q, $rootScope, $state, $translate) {
+    beforeEach(module('pascalprecht.translate'));
+    beforeEach(inject(['$injector', '$timeout', '$q', '$rootScope', '$state', '$translate', function ($injector, timeout, $q, $rootScope, $state) {
         q = $q;
         location = jasmine.createSpyObj('$location', ['url']);
         rootScope = $rootScope;
         messagingService = jasmine.createSpyObj('messagingService', ['showMessage']);
         stateParams = {patientUuid: '21308498-2502-4495-b604-7b704a55522d'};
-        patient = { "patient" : {
-            uuid: "21308498-2502-4495-b604-7b704a55522d",
-            isNew: "true",
-            person: {
-                names: [
-                    "name"
-                ]
+        patient = {
+            "patient": {
+                uuid: "21308498-2502-4495-b604-7b704a55522d",
+                isNew: "true",
+                person: {
+                    names: [
+                        "name"
+                    ]
+                }
             }
-        }};
+        };
         state = $state;
         $controller = $injector.get('$controller');
         scope = {"$watch": jasmine.createSpy()};
-        patientService = jasmine.createSpyObj('patientService', ['get','updateImage']);
+        patientService = jasmine.createSpyObj('patientService', ['get', 'updateImage']);
         visitService = jasmine.createSpyObj('visitService', ['search', 'endVisit', 'getVisitSummary']);
         appService = jasmine.createSpyObj('appService', ['getDescription', 'getAppDescriptor']);
         appDescriptor = jasmine.createSpyObj('appDescriptor', ['getConfigValue', 'getExtensions', 'formatUrl']);
+        offlineService = jasmine.createSpyObj('offlineService', ['isOfflineApp']);
+        offlineService.isOfflineApp.and.returnValue(false);
         appService.getAppDescriptor.and.returnValue(appDescriptor);
         appDescriptor.getExtensions.and.returnValue([]);
         patientMapper = jasmine.createSpyObj('patientMapper', ['map']);
@@ -120,12 +126,11 @@ describe('VisitController', function () {
         scope.encounterConfig = angular.extend(new EncounterConfig(), sampleConfig);
         spinner = jasmine.createSpyObj('spinner', ['forPromise']);
         spinner.forPromise.and.callFake(function () {
-            return;
         });
         sessionService = jasmine.createSpyObj('sessionService', ['getLoginLocationUuid']);
         encounterService = jasmine.createSpyObj('encounterService', ['create', 'find']);
         window = jasmine.createSpyObj('window', ['confirm']);
-        bahmniCookieStore = jasmine.createSpyObj('$bahmniCookieStore',['put']);
+        bahmniCookieStore = jasmine.createSpyObj('$bahmniCookieStore', ['put']);
         getEncounterPromise = specUtil.createServicePromise('find');
         getPatientPromise = specUtil.createServicePromise('get');
         encounterService.find.and.returnValue(getEncounterPromise);
@@ -154,7 +159,8 @@ describe('VisitController', function () {
             sessionService: sessionService,
             messagingService: messagingService,
             visitService: visitService,
-            $location: location
+            $location: location,
+            offlineService: offlineService
         });
     }
 
@@ -162,7 +168,7 @@ describe('VisitController', function () {
         it('should set the patient from patient data', function () {
             createController();
             getPatientPromise.callThenCallBack(patient);
-            getEncounterPromise.callSuccessCallBack(sampleEncounter);
+            getEncounterPromise.callThenCallBack({data: sampleEncounter });
 
             expect(scope.patient).toBe(patient);
         });
@@ -173,7 +179,7 @@ describe('VisitController', function () {
         beforeEach(function () {
             createController();
             getPatientPromise.callThenCallBack(patient);
-            getEncounterPromise.callSuccessCallBack(sampleEncounter);
+            getEncounterPromise.callThenCallBack({data : sampleEncounter});
 
             encounterService.create.and.callFake(stubOnePromise);
             scope.patient = {uuid: "21308498-2502-4495-b604-7b704a55522d"};
@@ -192,7 +198,7 @@ describe('VisitController', function () {
 
         it("should validate save and redirect to url specify by afterVisitSaveForwardUrl", function (done) {
 
-            appDescriptor.getConfigValue.and.callFake(function(value) {
+            appDescriptor.getConfigValue.and.callFake(function (value) {
                 if (value == 'afterVisitSaveForwardUrl') {
                     return "#/search";
                 }
@@ -201,13 +207,13 @@ describe('VisitController', function () {
                 }
             });
 
-            appDescriptor.formatUrl.and.callFake(function(value) {
+            appDescriptor.formatUrl.and.callFake(function (value) {
                 return value;
             });
 
             window.location = {
                 href: ""
-            }
+            };
 
             var submit = scope.submit();
             submit.then(function (response) {
@@ -218,10 +224,10 @@ describe('VisitController', function () {
             });
         });
 
-        it("should set the cookie with the current provider", function(done){
+        it("should set the cookie with the current provider", function (done) {
             state.expectTransitionTo(state.current);
             var submit = scope.submit();
-            submit.then(function(response){
+            submit.then(function (response) {
                 expect(bahmniCookieStore.put).toHaveBeenCalled();
                 done();
             })
@@ -232,12 +238,28 @@ describe('VisitController', function () {
 
         it("should set the visitUuid and canCloseVisit if there is an active visit for the patient", function () {
             var patientUuid = 'uuid';
+            rootScope.visitLocation = 'visitLocation';
             rootScope.currentUser = {privileges: [{name: Bahmni.Common.Constants.closeVisitPrivilege}]};
-            visitService.search.and.returnValue(searchActiveVisits([{uuid: patientUuid}]));
+
+            var mockSearchResults = [{uuid: patientUuid, location: {uuid: 'visitLocation'}}];
+            visitService.search.and.returnValue(searchActiveVisits(mockSearchResults));
             createController();
 
             expect(visitController.visitUuid).toBe(patientUuid);
             expect(scope.canCloseVisit).toBeTruthy();
+        });
+
+        it("should not set the visitUuid and canCloseVisit if there is no an active visit for the patient in that location", function () {
+            var patientUuid = 'uuid';
+            rootScope.visitLocation = 'visitLocation';
+            rootScope.currentUser = {privileges: [{name: Bahmni.Common.Constants.closeVisitPrivilege}]};
+
+            var mockSearchResults = [{uuid: patientUuid, location: {uuid: 'someOtherVisitLocation'}}];
+            visitService.search.and.returnValue(searchActiveVisits(mockSearchResults));
+            createController();
+
+            expect(visitController.visitUuid).toEqual("");
+            expect(scope.canCloseVisit).toBeFalsy();
         });
 
         it("should NOT set the visitUuid and canCloseVisit if there is no active visit for the patient", function () {
@@ -266,13 +288,15 @@ describe('VisitController', function () {
             visitService.getVisitSummary.and.returnValue(getVisitSummaryForUuid(visitSummary));
             window.confirm.and.returnValue(true);
             visitService.endVisit.and.returnValue({
-                then: function (successFn) {}
+                then: function (successFn) {
+                }
             });
-
             createController();
+            visitController.visitUuid = 'visitUuid';
+
             scope.closeVisitIfDischarged();
 
-            expect(visitService.endVisit).toHaveBeenCalled();
+            expect(visitService.endVisit).toHaveBeenCalledWith('visitUuid');
         });
 
         it("should not close visit when cancelled", function () {
@@ -298,8 +322,11 @@ describe('VisitController', function () {
 
     });
 
-    it('update patient image', function() {
-        var image = {replace: function() {}};
+    it('update patient image', function () {
+        var image = {
+            replace: function () {
+            }
+        };
         scope.patient = {uuid: 1};
         createController();
         scope.updatePatientImage(image);

@@ -318,6 +318,10 @@ body{
     font-size: 24px;
     line-height: 52px;
     padding: 0px 20px;
+    .left {
+      max-width: 150px;
+      overflow: hidden;
+    }
     .locale-wrapper{
       font-size: 14px;
       .locale-text{
@@ -332,6 +336,9 @@ body{
         margin: 0;
 
       }
+    }
+    a.back-btn{
+      line-height: initial !important;
     }
   }
 
@@ -436,6 +443,65 @@ body{
         }
       }
     }
+  }
+}
+
+/*** Change Password Page Styles ***/
+/******************************************************************************/
+.login.change-password-wrap{
+  width:auto;
+  max-width: 765px;
+  .change-password{
+    width:450px;
+    .field-value-buttons{
+      padding: 2px 0 2px 2px;
+      button{
+        padding: 7px 13px !important;
+        &.confirm{
+          margin-right: 0;
+        }
+      }
+    }
+    @media screen and (max-width: 830px) {
+      width:385px;
+    }
+    @media screen and (max-width: 720px){
+      float: none !important;
+      clear: both;
+    }
+  }
+  @media screen and (max-width: 830px) {
+    max-width:695px;
+  }
+  @media screen and (max-width: 720px) {
+    max-width: 400px;
+    height:auto;
+  }
+  .info{
+    width: 295px;
+    border-radius: 10px;
+    padding: 10px;
+    background: $white;
+    border:1px solid $lightGray;
+    @include box-shadow-for-section();
+    box-sizing: border-box;
+    h3{
+      margin: 0 0 15px;
+    }
+    ol{
+      line-height: 1.5;
+      padding-left: 15px;
+      li{
+        padding-bottom: 4px;
+      }
+    }
+    @media screen and (max-width: 720px) {
+      float: none !important;
+      clear: both;
+      width:385px;
+      margin-top: 20px;
+    }
+
   }
 }
 
@@ -578,5 +644,28 @@ button.button-Errorlog{
   background: $alertBackground;
   border-color: $alert;
   margin-bottom: 10px;
+}
+
+.login.login-otp .login-body {
+  .form-field .field-attribute label{
+    width:7em;
+  }
+  .form-field .field-value input[type="password"]{
+    min-width: initial;
+  }
+  .otp-button{
+    padding: 6px 14px;
+    margin: 2px 0 0 10px;
+  }
+  .form-footer {
+    padding-left: 9.3em;
+
+    button.confirm{
+      width:220px;
+    }
+  }
+  .error.error_resend{
+    color:green;
+  }
 }
 

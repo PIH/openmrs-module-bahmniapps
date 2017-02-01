@@ -139,7 +139,6 @@ describe("AddTreatmentController", function () {
             rootScope = $rootScope;
             encounterDateTime = moment("2014-03-02").toDate();
             scope.consultation = {preSaveHandler: new Bahmni.Clinical.Notifier(), encounterDateTime: encounterDateTime};
-            var now = DateUtil.now();
             ngDialog = jasmine.createSpyObj('ngDialog', ['open', 'close']);
             newTreatment = new Bahmni.Clinical.DrugOrderViewModel({}, {}, encounterDateTime);
             editTreatment = new Bahmni.Clinical.DrugOrderViewModel(null, null);
@@ -220,7 +219,7 @@ describe("AddTreatmentController", function () {
                 ngDialog: ngDialog,
                 appService: appService,
                 locationService :locationService,
-                DrugService: drugService,
+                drugService: drugService,
                 treatmentConfig: treatmentConfig,
                 orderSetService: orderSetService
             });

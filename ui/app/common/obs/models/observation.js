@@ -1,7 +1,6 @@
 'use strict';
 
 Bahmni.Common.Obs.Observation = (function () {
-
     var Observation = function (obs, conceptConfig) {
         angular.extend(this, obs);
         this.concept = obs.concept;
@@ -17,6 +16,9 @@ Bahmni.Common.Obs.Observation = (function () {
         isImageConcept: function () {
             return this.concept.conceptClass === "Image";
         },
+        isVideoConcept: function () {
+            return this.concept.conceptClass === "Video";
+        },
 
         hasPDFAsValue: function () {
             return (this.value.indexOf(".pdf") > 0);
@@ -28,7 +30,6 @@ Bahmni.Common.Obs.Observation = (function () {
                 return this.value === true ? "OBS_BOOLEAN_YES_KEY" : "OBS_BOOLEAN_NO_KEY";
             }
             if (this.type === "Datetime" || this.concept && this.concept.dataType === "Datetime") {
-
                 var date = Bahmni.Common.Util.DateUtil.parseDatetime(this.value);
                 return date != null ? Bahmni.Common.Util.DateUtil.formatDateWithTime(date) : "";
             }
@@ -55,8 +56,6 @@ Bahmni.Common.Obs.Observation = (function () {
         }
     };
 
-
     return Observation;
-
 })();
 

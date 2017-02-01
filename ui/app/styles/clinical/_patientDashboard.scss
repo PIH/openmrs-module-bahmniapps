@@ -162,23 +162,57 @@ category:  Layout - sections
   float: left;
   margin-left: 10px;
 }
+
+.print-list-wrapper{
+  &.active{
+    ul{
+      display: block;
+    }
+  }
+  ul{
+    display: none;
+    background: #fff;
+    position: absolute;
+    top: 46px;
+    width: 220px;
+    padding: 10px 10px 0;
+    right: 385px;
+    li{
+      display: block;
+      padding-bottom: 10px;
+      cursor:pointer;
+    }
+  }
+  @media screen and (max-width: 700px){
+    diplay:none;
+  }
+}
+
 .dashboard-sections-wrapper {
   @include clearfix();
   .dashboard-sections {
+    @include clearfix;
     margin: 0;
     box-sizing: border-box;
     float: left;
     width: 100%;
     padding: 0;
-    @include clearfix;
     &.halfpage-container{
       width: 50%;
       .LAYOUT_25_75{
         width: 49.7%;
+        @media screen and (max-width: 760px) {
+          width:100%;
+          float:none;
+        }
       }
       &.dashboard-sections-left{
         .LAYOUT_25_75{
           width:48.3%;
+          @media screen and (max-width: 760px) {
+            width:100%;
+            float:none;
+          }
         }
       }
       @media screen and (max-width: 859px) {
@@ -213,11 +247,19 @@ category:  Layout - sections
       .LAYOUT_25_75{
         width: 24.5%;
         float: left;
+        @media screen and (max-width: 760px) {
+          width:100%;
+          float:none;
+        }
       }
 
       .LAYOUT_75_25{
         width: 75.5%;
         float: left;
+        @media screen and (max-width: 760px) {
+          width:100%;
+          float:none;
+        }
       }
     }
     .disease-date{
@@ -268,7 +310,7 @@ category:  Layout - sections
     padding: 0!important;
     border: 0;
     background: $white;
-    //overflow: auto !important;
+    //overflow-x: auto !important;
   }
   table {
     margin: 0;
@@ -281,6 +323,11 @@ category:  Layout - sections
     td.toggle-btn {
       padding: 5px;
       width: 30px;
+    }
+    th{
+      @media screen and (max-width: 1024px) {
+        font-size: 12px;
+      }
     }
   }
   section {
@@ -593,8 +640,18 @@ table.drug-order-table td.drug {
 .dashboard-section section.block.hierarchy {
   .field-attribute {vertical-align: top;}
   .testUnderPanel, .value-text-only, .date-text-only {display: inline-block; vertical-align: top;}
-  .testUnderPanel, .value-text-only {width: 35%;}
-  .testUnderPanel {padding:0;}
+  .testUnderPanel, .value-text-only {
+    width: 35%;
+    @media screen and (max-width: 700px) {
+      width:45%;
+    }
+  }
+  .testUnderPanel {
+    padding:0;
+    @media screen and (max-width: 700px) {
+      padding-right: 10px;
+    }
+  }
   .date-text-only {width: 15%;}
   .toggle i {padding: 0};
   .img-concept {
@@ -621,6 +678,54 @@ table.drug-order-table td.drug {
       img {
         box-shadow: none;
         border-color: $lightGray;
+      }
+    }
+  }
+  li.video-concept{
+    border-top:none;
+    height:300px;
+    margin:5px 15px;
+    border: 1px solid $lightGray;
+    position: relative;
+    overflow: hidden;
+    @media screen and(max-width:1150px){
+      height:auto;
+    }
+    @media screen and (max-width: 859px) {
+      height:300px;
+    }
+    .testUnderPanel{
+      width: 100% !important;
+      padding:3px 10px 0;
+      box-sizing: border-box;
+      .btn-download{
+        padding: 6px 9px 7px;
+      }
+    }
+    .tree-list-item{
+      padding-left: 0;
+    }
+    .toggle{
+      position: absolute;
+      right: 0;
+      padding-top: 6px;
+    }
+
+    pre{
+      width:92%;
+    }
+    .notes.inline-notes{
+      margin-top:-4px;
+    }
+    .footer-note{
+      text-align:left;
+      float: none;
+      clear:both;
+      padding-top: 5px;
+      padding-left: 20px;
+      .provider{
+        float: none;
+        clear: both;
       }
     }
   }
@@ -799,6 +904,7 @@ table.pivot-table {
     color: $text;
     border-radius: 0px 5px 5px 5px;
     box-shadow: 2px 2px 20px rgba(0, 0, 0, .50);
+    padding-bottom: 5px;
     &::-webkit-scrollbar {
       -webkit-appearance: none;
       width: 2px;
@@ -842,6 +948,7 @@ table.pivot-table {
         overflow: hidden;
         padding-right: 5px;
         float: left;
+        height:20px !important;
       }
     }
     .currentPatient {
@@ -861,6 +968,12 @@ table.pivot-table {
   &.dst-results {
     .tabular-obs table {
       table-layout: fixed;
+      @media screen and (max-width: 1024px) {
+        table-layout:auto;
+      }
+      td,th{
+        word-break: break-word;
+      }
     }
   }
   .tabular-obs table tr td:first-child {
@@ -873,20 +986,25 @@ table.pivot-table {
     font-family: OpenSansSemiBold;
     color: $darkGray;
   }
+  .tabular-obs table tr th.obsTableHeaderName{
+     width:155px;
+   }
   .tabular-obs table tr th.obsTableEdit{
-    width:130px;
+    width:170px;
   }
+  .tabular-obs table tr th.obsTableDate{
+    width:75px;
+    word-break: normal;
+  }
+
   .tabular-obs table tr td.obsTableEdit{
-      width:130px;
+      width:170px;
       span.obsTableData{
-        width:105px;
+        width:143px;
         @media screen and (max-width: 1024px) {
-          width:97px;
+          width:135px;
         }
       }
-  }
-  .tabular-obs table tr td .obsTableEditContainer{
-    width:130px;
   }
 }
 
@@ -894,6 +1012,9 @@ table.pivot-table {
   .chronic-treatment {
     overflow: auto;
     .stopped {
+      background-color: lightsalmon;
+    }
+    .error {
       background-color: red;
     }
   }
@@ -919,7 +1040,7 @@ table.pivot-table {
 }
 
 table.treatments-details-table{
-  font-size: 12px;
+  font-size: 12px;      
   td{
     border: none;
     width: 18%;
@@ -1002,4 +1123,42 @@ table.treatments-details-table{
   }
 
 }
+.video-concept-show{
+  width:50%;
+  float: left;
+  @media screen and(max-width:1150px){
+    width: 100%;
+  }
+  @media screen and (max-width: 859px) {
+    width:50%;
+  }
+}
+.ng-dialog-all-details-page .concept-set-container-view{
+  @include clearfix;
+   background: $white;
+  .video-concept-show{
+    width:33.333%;
+    li.video-concept{
+      height:310px !important;
+    }
+    @media screen and (max-width: 859px) {
+      width:50%;
+    }
+  }
+}
+
+
+h2.section-title.section-title-pivot{
+  overflow: hidden;
+  padding: 8px 10px 5px;
+
+  .btn-scrolling {
+    margin-top: -3px;
+    button {
+      margin-left: 10px;
+    }
+  }
+
+}
+
 

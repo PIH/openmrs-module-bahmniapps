@@ -2,7 +2,6 @@
 
 angular.module('bahmni.common.offline')
     .service('observationDbService', function () {
-
         var insertObservationsData = function (db, patientUuid, visitUuid, observationsDataList) {
             observationsDataList = JSON.parse(JSON.stringify(observationsDataList));
             var observationTable = db.getSchema().table('observation');
@@ -18,8 +17,7 @@ angular.module('bahmni.common.offline')
                         observationJson: observationData
                     });
                     queries.push(db.insertOrReplace().into(observationTable).values([row]));
-                }
-                else {
+                } else {
                     var obsToBeRemoved = removeObservationByObservationUuid(db, observationData.uuid);
                     queries.push(obsToBeRemoved);
                 }
@@ -41,7 +39,18 @@ angular.module('bahmni.common.offline')
                 });
         };
 
-        var removeObservationByObservationUuid = function(db, observationUuid){
+        var getObservationsForVisit = function (db, visitUuid) {
+            var obs = db.getSchema().table('observation');
+            return db.select(obs.observationJson.as('observation'))
+                .from(obs)
+                .where(obs.visitUuid.eq(visitUuid))
+                .exec()
+                .then(function (results) {
+                    return results;
+                });
+        };
+
+        var removeObservationByObservationUuid = function (db, observationUuid) {
             var obs = db.getSchema().table('observation');
             return db.delete()
                 .from(obs)
@@ -50,6 +59,7 @@ angular.module('bahmni.common.offline')
 
         return {
             getObservationsFor: getObservationsFor,
-            insertObservationsData: insertObservationsData
-        }
+            insertObservationsData: insertObservationsData,
+            getObservationsForVisit: getObservationsForVisit
+        };
     });

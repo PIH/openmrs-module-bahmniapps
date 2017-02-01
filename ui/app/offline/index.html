@@ -2,7 +2,7 @@
 <html lang="en" ng-app="bahmni.offline">
     <head>
         <title>Bahmni Home</title>
-        
+
         <meta charset="utf-8">
         <meta name="HandheldFriendly" content="true">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes, minimal-ui" />
@@ -20,12 +20,12 @@
         <div class="reg-wrapper">
                 <div ng-include src="'../common/ui-helper/messages.html'"></div>
                 <div ui-view id="view-content"></div>
-                <div class="mask">
-                    <div class="overlay">
-                        <p class="message">Offline content is being synced</p>
-                        <img src="../images/spinner.gif" style="margin-top: 20px;"/>
-                    </div>
+            <div class="mask" ng-hide="showSyncInfo">
+                <div class="overlay">
+                    <p class="message">Offline content is being synced</p>
+                    <img src="../images/spinner.gif" style="margin-top: 20px;"/>
                 </div>
+            </div>
         </div>
 
         <script src="../components/crypto-js/crypto-js.js"></script>
@@ -71,7 +71,10 @@
         <script src="../common/offline/init.js"></script>
         <script src="../common/logging/init.js"></script>
         <script src="../common/offline/schemaDefinitions.js"></script>
+        <script src="../common/offline/chromeMigrations/migration_1.js"></script>
         <script src="../common/offline/offlineService.js"></script>
+        <script src="../common/offline/services/dbNameService.js"></script>
+
         <script src="../common/offline/initializeOfflineSchema.js"></script>
         <script src="../common/offline/offlineDbInitialization.js"></script>
         <script src="../common/offline/offlineSyncInitialization.js"></script>
@@ -89,6 +92,7 @@
         <script src="../common/offline/offlinePush.js"></script>
         <script src="../common/offline/offlinePull.js"></script>
         <script src="../common/offline/services/offlineSyncService.js"></script>
+        <script src="../common/offline/services/networkStatusService.js"></script>
         <script src="../common/offline/services/eventLogService.js"></script>
         <script src="../common/offline/dbservices/dao/androidDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineSearchDbService.js"></script>
@@ -96,6 +100,7 @@
         <script src="../common/offline/dbservices/dao/patientAddressDbService.js"></script>
         <script src="../common/offline/dbservices/dao/patientAttributeDbService.js"></script>
         <script src="../common/offline/dbservices/dao/patientDbService.js"></script>
+        <script src="../common/offline/dbservices/dao/patientIdentifierDbService.js"></script>
         <script src="../common/offline/dbservices/dao/encounterDbService.js"></script>
         <script src="../common/logging/offline/offlineLoggingService.js"></script>
         <script src="../common/logging/offline/chromeLoggingService.js"></script>
@@ -103,6 +108,7 @@
         <script src="../common/offline/dbservices/dao/errorLogDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineMarkerDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineAddressHierarchyDbService.js"></script>
+        <script src="../common/offline/dbservices/dao/labOrderResultsDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineConfigDbService.js"></script>
         <script src="../common/offline/dbservices/dao/referenceDataDbService.js"></script>
         <script src="../common/offline/dbservices/dao/locationDbService.js"></script>

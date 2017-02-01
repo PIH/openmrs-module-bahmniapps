@@ -100,7 +100,6 @@ describe('Diagnosis DisplayControl', function () {
 
     it('should filter all ruled out diagnoses when showRuledOutDiagnoses flag is true', function () {
         directiveHtml = '<bahmni-diagnosis patient-uuid="patient.uuid" config="section" show-ruled-out-diagnoses="undefined"></bahmni-diagnosis>';
-
         init();
         expect(compiledElementScope.allDiagnoses.length).toBe(1);
     });

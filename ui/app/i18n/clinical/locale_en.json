@@ -32,6 +32,10 @@
     "PROGRAM_MANAGEMENT_START_DATE_KEY": "Start Date",
     "PROGRAM_MANAGEMENT_STOP_DATE_KEY": "Stop Date",
     "PROGRAM_MANAGEMENT_STARTED_ON_KEY": "Started on ",
+    "PROGRAM_MANAGEMENT_SELECT_PROGRAM_MESSAGE_KEY": "Please select a Program to Enroll the patient",
+    "PROGRAM_MANAGEMENT_ALREADY_ENROLLED_PROGRAM_MESSAGE_KEY": "Patient already enrolled to the Program",
+    "PROGRAM_MANAGEMENT_STATE_CANT_START_BEFORE_KEY": "State cannot be started earlier than current state",
+    "PROGRAM_MANAGEMENT_PROGRAM_CANT_END_BEFORE_KEY": "Program cannot be ended earlier than current state",
     "PROGRAM_MANAGEMENT_DO_YOU_WANT_TO_REMOVE_KEY": "Do you want to remove ",
     "PATIENT_NOT_ENROLLED_TO_PROGRAMS_MESSAGE_KEY": "The Patient has not enrolled to any programs",
     "PATIENT_DOESNT_HAVE_PREVIOUS_PROGRAMS_MESSAGE_KEY": "The Patient doesn't have any previous programs",
@@ -53,13 +57,20 @@
     "ALL_DIAGNOSES_KEY": "All Diagnoses",
     "ALL_KEY": "All",
 
-    "SEARCH_NAME_PLACEHOLDER_KEY": "Search Name/ID  ...",
+    "SEARCH_NAME_PLACEHOLDER_KEY": "Search Name/{{ primaryIdentifier }}  ...",
     "SEARCH_KEY": "Search",
     "CLINICAL_YEARS_TRANSLATION_KEY": "Years",
     "CLINICAL_MONTHS_TRANSLATION_KEY": "months",
     "CLINICAL_DAYS_TRANSLATION_KEY": "days",
     "CONCEPT_SET_GROUP_EXPAND_ALL_KEY":"Expand All",
     "CONCEPT_SET_GROUP_COLLAPSE_ALL_KEY":"Collapse All",
+    "ADD_NEW_OBSERVATION":"Add New Obs Form",
+    "CONCEPT_SET_GROUP_PIN_UNPIN_KEY":"Pin/Unpin",
+    "CONCEPT_SET_GROUP_REMOVE_KEY": "Remove",
+    "CONCEPT_SET_GROUP_SEARCH_LABEL": "Search Obs Form",
+    "EMPTY_TEMPLATE_MESSAGE": "Click on 'Add New Obs Form' button to add new forms here",
+    "SCROLL_LEFT": "Scroll to Left",
+    "SCROLL_RIGHT": "Scroll to Right",
 
 
     "VISIT_TITLE_PATIENT_INFORMATION":"PatientInformation",
@@ -79,6 +90,8 @@
     "CLINICAL_SAVE_SUCCESS_MESSAGE_KEY": "Saved",
     "CLINICAL_SAVE_FAILURE_MESSAGE_KEY": "An error has occurred on the server. Information not saved.",
     "CLINICAL_FORM_ERRORS_MESSAGE_KEY": "Please enter a value in the mandatory fields or correct the value in the highlighted fields to proceed",
+    "CLINICAL_ORDER_RADIOLOGY_NEED_PRINT": "Need Print for this order.",
+    "CLINICAL_ORDER_RADIOLOGY_NEED_PRINT_BUTTON": "Needs Print",
     "CLINICAL_DECIMAL_FAILURE_MESSAGE_KEY" : "Please enter Integer value, decimal value is not allowed",
     "SAVE_ACCESS_KEY": "s",
     "CLINICAL_PRINT_TRANSLATION_KEY": "P<u>r</u>int",
@@ -100,7 +113,6 @@
     "BACTERIOLOGY_BUTTON_ADD_SAMPLE_KEY" : "ADD SAMPLE",
     "BACTERIOLOGY_BUTTON_CLEAR_KEY" : "Clear",
     "BACTERIOLOGY_BUTTON_EDIT_KEY" : "Edit",
-    "BACTERIOLOGY_SAMPLE_BEING_EDITED_KEY": "The specimen is already being edited: ",
     "BACTERIOLOGY_ADDED_ON_KEY": "Added on",
     "BACTERIOLOGY_SAMPLE_TYPE_KEY_NON_CODED": "Other Sample Type",
 
@@ -137,6 +149,7 @@
     "MEDICATION_CHANGE_DURATION_BUTTON" :"Change Duration",
 
     "REMOVE_CONFIRMATION_KEY": "Are you sure you want to remove?",
+    "CLEAR_CONFIRMATION_KEY": "Are you sure you want to clear?",
     "REMOVE_DRUG_ORDER_KEY": "Are you sure you want to remove drug : {{ drugName }} ?",
 
     "DRUG_DETAILS_DRUG_NAME": "Drug",
@@ -172,5 +185,8 @@
     "MESSAGE_DIALOG_OPTION_OKAY": "OK",
 
     "OBS_BOOLEAN_YES_KEY":"Yes",
-    "OBS_BOOLEAN_NO_KEY":"No"
+    "OBS_BOOLEAN_NO_KEY":"No",
+    "CLINICAL_DUPLICATE_DIAGNOSIS_ERROR_MESSAGE" : "Please correct the duplicate diagnosis entered.",
+    "CLINICAL_TEMPLATE_ADDED_SUCCESS_KEY": "{{label}} added successfully",
+    "CLINICAL_TEMPLATE_REMOVED_SUCCESS_KEY": "{{label}} removed successfully"
 }

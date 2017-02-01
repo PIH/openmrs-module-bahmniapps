@@ -1,8 +1,7 @@
 "use strict";
 
-angular.module('bahmni.clinical').directive('observationGraph', ['appService', 'observationsService', 'patientService', 'conceptSetService', '$q',
-    function (appService, observationsService, patientService, conceptSetService, $q) {
-
+angular.module('bahmni.clinical').directive('observationGraph', ['appService', 'observationsService', 'patientService', 'conceptSetService', '$q', 'spinner',
+    function (appService, observationsService, patientService, conceptSetService, $q, spinner) {
         var generateGraph = function ($scope, element, config, observationGraphModel) {
             var bindToElement = document.getElementById($scope.graphId);
             var graphWidth = $(element).parent().width();
@@ -46,13 +45,12 @@ angular.module('bahmni.clinical').directive('observationGraph', ['appService', '
             var checkWhetherYAxisIsNumericDataType = function (yAxisConceptDetails) {
                 if (yAxisConceptDetails.datatype.name !== "Numeric") {
                     var errorMsg = Bahmni.Clinical.Constants.errorMessages.conceptNotNumeric
-                        .replace(":conceptName",yAxisConceptDetails.name.name)
-                        .replace(":placeErrorAccurred",$scope.params.title+" config in growthChartReference.csv");
+                        .replace(":conceptName", yAxisConceptDetails.name.name)
+                        .replace(":placeErrorAccurred", $scope.params.title + " config in growthChartReference.csv");
                     throw new Error(errorMsg);
                 }
             };
-
-            $q.all(promises).then(function (results) {
+            spinner.forPromise($q.all(promises).then(function (results) {
                 var yAxisConceptDetails = results[0].data && results[0].data.results && results[0].data.results[0];
                 var observations = results[1].data;
                 var patient = results[2] && results[2].data.person;
@@ -77,7 +75,7 @@ angular.module('bahmni.clinical').directive('observationGraph', ['appService', '
                 }
                 var model = Bahmni.Clinical.ObservationGraph.create(observations, patient, config, referenceLines);
                 generateGraph($scope, element, config, model);
-            });
+            }), element);
         };
 
         return {

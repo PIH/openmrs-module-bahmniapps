@@ -90,6 +90,12 @@
     float: left;
     padding: 10px 10px 0;
     width: 100px;
+    @media screen and (max-width: 850px) {
+      width: 175px;
+      padding-right: 20px;
+      box-sizing: border-box;
+      text-align: right;
+    }
     @media screen and (max-width: 595px) {
       padding: 4px 10px;
     }
@@ -196,34 +202,59 @@ concept-set {
 
 .concept-set-group {
   .concept-set-title {
+    @include clearfix();
     cursor: pointer;
     position: relative;
+    background: darken($bahmniSecondaryColor, 10%);
+    padding: 0 100px 0 0;
+    border-radius: 3px 3px 0 0;
     h2.section-title {
-      padding: 10px 32px 10px 10px;
+      padding: 0;
+      background: darken($bahmniSecondaryColor, 10%);
+      padding: 10px 0 10px 10px;
+      font-size: 14px;
+      border-radius: 3px 3px 0 0;
       button {
         font-size: 12px;
         font-family: Opensans, Arial, sans-serif;
-        padding: 4px 10px;
-        margin: -4px 5px 0 0;
-      }
-      &.section-title-add-more{
-        padding: 10px 150px 10px 10px;
       }
     }
-    .favourite-concept-set {
+    .form-actions {
+      width: auto;
+      top: 0;
       position: absolute;
-      right: 4px;
-      top: 4px;
-    }
-    .add-more-concept-set{
-      position: absolute;
-      top: 5px;
-      right: 37px;
-      padding: 3px 5px;
-      color: $black;
-      i {
-        color: green;
-        padding: 0.2em 0.1em;
+      right: 0;
+      bottom: 0;
+      padding: 10px 10px;
+      button {
+        display: table;
+        float: left;
+        width: auto;
+        margin-left: 12px;
+        background: none;
+        padding: 0;
+        border: none;
+        color: #fff;
+        @media screen and (max-width: 1024px){
+          margin-left: 21px;
+        }
+        &:focus{
+          outline: none;
+        }
+        &:hover{
+          opacity: 0.5;
+        }
+        .fa {
+          padding: 0;
+          width:auto;
+        }
+        [class^="icon-"]:before,
+        [class*=" icon-"]:before {
+          font-size: 16px;
+        }
+        .fa-trash {
+          font-size: 18px;
+        }
       }
     }
   }
@@ -234,17 +265,17 @@ concept-set {
     padding: 5px;
   }
   .consultation-image {
-    width: 807px;
+    width: 500px;
     background: $lightestGray;
     padding: 5px;
     overflow: auto;
     clear: both;
     box-sizing: border-box;
-    @media screen and (max-width: 1130px) {
-      width:600px;
+    @media screen and (max-width: 1150px){
+      width:300px;
     }
-    @media screen and (max-width: 768px){
-      width:275px;
+    @media screen and (max-width: 850px){
+      width:150px;
     }
     .file{
       .comment-toggle {
@@ -288,6 +319,42 @@ concept-set {
     .comment-toggle {
       margin-right: 10px;
       margin-bottom: 5px;
+    }
+    &.consultation-image-disabled{
+      pointer-events: none;
+      .placeholder.btn {
+        opacity:0.4;
+      }
+    }
+  }
+  .form-group.form-group-video{
+    float:none;
+    label.control-label{
+      margin-right:-100%;
+    }
+    .field-value{
+      float: left;
+      width: 100%;
+    }
+  }
+  .consultation-video{
+    width: auto;
+    background: none;
+    margin-left:210px;
+    form .vitals .form-field .field-value input{
+      width:50px;
+    }
+    label.placeholder{
+      width:auto;
+      margin:0 !important;
+      padding: 6px 15px;
+      background: $lightestGray;
+      cursor: pointer;
+      border: 1px solid $lightGray;
+      border-radius: 3px;
+    }
+    .row-remover{
+      margin:0;
     }
   }
 }
@@ -436,8 +503,11 @@ concept-set {
       width:185px;
     }
   }
+  @media screen and (max-width: 1200px) {
+    max-width: 62%;
+  }
   @media screen and (max-width: 850px){
-    max-width:52%;
+    max-width:50%;
   }
 }
 .add-more-wrapper{
@@ -445,3 +515,197 @@ concept-set {
 }
 .illegalValue .multi-select-button-group {display: table;  width: auto; }
 .field-value-buttonSelectType .illegalValue{display: table; width:auto;}
+
+
+//2 Column Layout Styles
+
+.concept-set-panel{
+  width:100%;
+  margin: 0 auto;
+  .concept-set-panel-left{
+    float: left;
+    width: 275px;
+    margin-right: -100%;
+    position: relative;
+    @media screen and (max-width: 1024px){
+      width: 250px;
+    }
+    @media screen and (max-width: 850px){
+      width: 225px;
+    }
+    .concept-set-panel-wrap{
+      border-radius: 5px 5px 0 0;
+      border: 1px solid $darkerGrey;
+      position: fixed;
+      width:inherit;
+      height:auto;
+      top:138px;
+      bottom: 50px;
+      background:$white;
+      overflow-y:auto;
+      overflow-x: hidden;
+      z-index: 9999999;
+    }
+    .multi-select-lab-tests{
+      width: 100% !important;
+      box-sizing: border-box;
+      li {
+        position: relative;
+        &.emptymsg {
+          display: list-item;
+          padding: 10px;
+          color: $darkerGrey;
+          font-size: 12px;
+        }
+        + .emptymsg {
+          display: none;
+        }
+        a {
+          overflow: auto;
+          box-sizing: border-box;
+          font-size: 12px;
+          border-bottom: 1px solid $lightGray;
+          padding: 8px 10px !important;
+          display: block;
+          color:darken($bahmniSecondaryColor, 20%);
+          .concept-set-name {
+            display: block;
+            width: auto;
+            margin-right:25px;
+            &.concept-set-name-extra {
+              margin-right: 52px;
+            }
+          }
+          @media screen and (max-width: 1024px){
+            padding: 8px 5px;
+            font-size: 14px;
+          }
+          &:hover{
+            background: $observationTitleHover;
+          }
+        }
+        .button-wrap{
+          padding: 0;
+          position: absolute;
+          right:10px;
+          top:50%;
+          transform: translateY(-50%);
+          @media screen and (max-width: 1024px){
+            right:5px;
+          }
+          .fa-exclamation-triangle{
+            margin-left: 5px;
+            font-size: 17px;
+            width:auto;
+          }
+          .fa-plus{
+            color: $mediumGray;
+            font-size: 18px;
+            width: auto;
+            font-weight: 100;
+          }
+        }
+        &.active{
+          a{
+            background: darken($bahmniSecondaryColor, 10%);
+            color: $white;
+            font-family: $OpenSansSemiBoldFont;
+          }
+          .fa-plus{
+            color: $white;
+          }
+
+        }
+      }
+    }
+  }
+  .concept-set-panel-right-wrap{
+    float: right;
+    width: 100%;
+  }
+  .concept-set-panel-right{
+    margin-left: 290px;
+    margin-top:34px;
+    position: relative;
+    @media screen and (max-width: 1024px){
+      margin-left: 265px;
+    }
+    @media screen and (max-width: 850px){
+      margin-left: 240px;
+    }
+    ul li {
+      &.concept-set-panel-no-template{
+        width:100%;
+        border: 1px solid $darkerGrey;
+        border-radius: 5px 5px 0 0;
+        background: $white;
+        box-sizing: border-box;
+        display: list-item;
+        @media screen and (max-width: 760px){
+          height:auto;
+          position: static;
+          border: none;
+          background: none;
+        }
+      }
+      + .concept-set-panel-no-template {
+        display: none;
+      }
+    }
+
+    .section-title #removeClonedObs.fa-remove{
+      padding: 3px 5px 4px;
+      width: auto;
+      margin: -3px 0 0;
+      font-size: 14px;
+    }
+    .concept-set-title {
+      cursor: initial;
+      .section-title{
+        cursor: pointer;
+      }
+    }
+    div.duration.checkbox-inline {
+      @media screen and (max-width: 1200px){
+        margin-top: 0;
+        margin-left: 193px;
+      }
+      @media screen and (max-width: 1024px){
+        margin-left: 163px;
+      }
+      @media screen and (max-width: 850px){
+        margin-left: 150px;
+      }
+      .input.duration-value{
+        @media screen and (max-width: 1200px) {
+          padding: 2px 10px;
+        }
+      }
+    }
+    #chief_complaint_data_addmore_observation_4{
+      @media screen and (max-width: 1200px) {
+        margin-top: 9px;
+      }
+      @media screen and (max-width: 850px){
+        margin-top:0;
+      }
+    }
+  }
+  form .form-field textarea, .form .form-field textarea{
+    width:500px;
+    @media screen and (max-width: 1200px){
+      width:300px;
+    }
+    @media screen and (max-width: 850px){
+      width:250px;
+    }
+  }
+  table .field-value-buttonSelectType{
+    width:47%;
+  }
+}
+.button-wrap-video{
+  .add-more ,.fa-remove{
+    margin:4px 5px 0 0!important;
+  }
+}

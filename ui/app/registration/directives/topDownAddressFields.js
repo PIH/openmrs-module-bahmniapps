@@ -10,11 +10,11 @@ angular.module('bahmni.registration')
                 address: '=',
                 addressLevels: '=',
                 fieldValidation: '=',
-                freeTextAddressFields: '='
+                strictAutocompleteFromLevel: '='
             }
         };
     })
-    .controller('TopDownAddressFieldsDirectiveController', function ($scope, addressHierarchyService) {
+    .controller('TopDownAddressFieldsDirectiveController', ['$scope', 'addressHierarchyService', function ($scope, addressHierarchyService) {
         $scope.addressFieldInvalid = false;
         var selectedAddressUuids = {};
         var selectedUserGeneratedIds = {};
@@ -27,8 +27,9 @@ angular.module('bahmni.registration')
         });
 
         var populateSelectedAddressUuids = function (levelIndex, parentUuid) {
-            if ($scope.addressLevels.length === 0)
+            if ($scope.addressLevels.length === 0 || !$scope.addressLevels[levelIndex]) {
                 return;
+            }
 
             var fieldName = $scope.addressLevels[levelIndex].addressField;
             var addressValue = $scope.address[fieldName];
@@ -38,26 +39,17 @@ angular.module('bahmni.registration')
                     if (address) {
                         selectedAddressUuids[fieldName] = address.uuid;
                         selectedUserGeneratedIds[fieldName] = address.userGeneratedId;
-                        $scope.$parent.patient.addressCode = selectedUserGeneratedIds[fieldName];
                         populateSelectedAddressUuids(levelIndex + 1, address.uuid);
                     }
                 });
             }
         };
 
-        //wait for address to be resolved in edit patient scenario
-        var deregisterAddressWatch = $scope.$watch('address', function (newValue) {
-            if (newValue !== undefined) {
-                populateSelectedAddressUuids(0);
-                deregisterAddressWatch();
-            }
-        });
-
-
         $scope.addressFieldSelected = function (fieldName) {
             return function (addressFieldItem) {
                 selectedAddressUuids[fieldName] = addressFieldItem.addressField.uuid;
                 selectedUserGeneratedIds[fieldName] = addressFieldItem.addressField.userGeneratedId;
+                $scope.selectedValue[fieldName] = addressFieldItem.addressField.name;
                 var parentFields = addressLevelsNamesInDescendingOrder.slice(addressLevelsNamesInDescendingOrder.indexOf(fieldName) + 1);
                 var parent = addressFieldItem.addressField.parent;
                 parentFields.forEach(function (parentField) {
@@ -65,9 +57,9 @@ angular.module('bahmni.registration')
                         return;
                     }
                     $scope.address[parentField] = parent.name;
+                    $scope.selectedValue[parentField] = parent.name;
                     parent = parent.parent;
                 });
-                $scope.$parent.patient.addressCode = selectedUserGeneratedIds[fieldName];
             };
         };
 
@@ -83,10 +75,14 @@ angular.module('bahmni.registration')
             return parentFieldName;
         };
 
-        $scope.isReadOnly = function (fieldName) {
+        $scope.isReadOnly = function (addressLevel) {
             if (!$scope.address) {
                 return false;
             }
+            if (!addressLevel.isStrictEntry) {
+                return false;
+            }
+            var fieldName = addressLevel.addressField;
             var parentFieldName = $scope.findParentField(fieldName);
             var parentValue = $scope.address[parentFieldName];
             var parentValueInvalid = isParentValueInvalid(parentFieldName);
@@ -118,23 +114,46 @@ angular.module('bahmni.registration')
         $scope.clearFields = function (fieldName) {
             var childFields = addressLevelsNamesInDescendingOrder.slice(0, addressLevelsNamesInDescendingOrder.indexOf(fieldName));
             childFields.forEach(function (childField) {
-                if (!$scope.isFreeTextAddressField(childField)) {
+                if ($scope.selectedValue[childField] !== null) {
                     $scope.address[childField] = null;
+                    $scope.selectedValue[childField] = null;
                     selectedAddressUuids[childField] = null;
                     selectedUserGeneratedIds[childField] = null;
                 }
             });
-            if (!_.isEmpty($scope.address[fieldName])) {
-                $scope.$parent.patient.addressCode = selectedUserGeneratedIds[fieldName];
-            } else {
+
+            if (_.isEmpty($scope.address[fieldName])) {
                 $scope.address[fieldName] = null;
                 selectedUserGeneratedIds[fieldName] = null;
-                $scope.$parent.patient.addressCode = selectedUserGeneratedIds[$scope.findParentField(fieldName)];
             }
-
         };
 
-        $scope.isFreeTextAddressField = function (field) {
-            return $scope.freeTextAddressFields && _.includes($scope.freeTextAddressFields, field);
+        $scope.removeAutoCompleteEntry = function (fieldName) {
+            return function () {
+                $scope.selectedValue[fieldName] = null;
+            };
         };
-    });
+
+        var init = function () {
+            $scope.addressLevels.reverse();
+            var isStrictEntry = false;
+            _.each($scope.addressLevels, function (addressLevel) {
+                addressLevel.isStrictEntry = $scope.strictAutocompleteFromLevel == addressLevel.addressField || isStrictEntry;
+                isStrictEntry = addressLevel.isStrictEntry;
+            });
+            $scope.addressLevels.reverse();
+
+            // wait for address to be resolved in edit patient scenario
+            var deregisterAddressWatch = $scope.$watch('address', function (newValue) {
+                if (newValue !== undefined) {
+                    populateSelectedAddressUuids(0);
+                    $scope.selectedValue = _.mapValues($scope.address, function (value, key) {
+                        var addressLevel = _.find($scope.addressLevels, {addressField: key});
+                        return addressLevel && addressLevel.isStrictEntry ? value : null;
+                    });
+                    deregisterAddressWatch();
+                }
+            });
+        };
+        init();
+    }]);

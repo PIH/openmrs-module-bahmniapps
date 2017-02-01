@@ -1,9 +1,8 @@
 'use strict';
 
 angular.module('bahmni.registration')
-    .controller('PatientCommonController', ['$scope', '$rootScope', '$http', 'patientAttributeService', 'appService','spinner',
+    .controller('PatientCommonController', ['$scope', '$rootScope', '$http', 'patientAttributeService', 'appService', 'spinner',
         function ($scope, $rootScope, $http, patientAttributeService, appService, spinner) {
-
             var autoCompleteFields = appService.getAppDescriptor().getConfigValue("autoCompleteFields", []);
             var showCasteSameAsLastNameCheckbox = appService.getAppDescriptor().getConfigValue("showCasteSameAsLastNameCheckbox");
             var personAttributes = [];
@@ -14,8 +13,6 @@ angular.module('bahmni.registration')
             $scope.genderCodes = Object.keys($rootScope.genderMap);
             $scope.dobMandatory = appService.getAppDescriptor().getConfigValue("dobMandatory") || false;
 
-
-
             $scope.getDeathConcepts = function () {
                 return $http({
                     url: Bahmni.Common.Constants.globalPropertyUrl,
@@ -24,11 +21,10 @@ angular.module('bahmni.registration')
                         property: 'concept.reasonForDeath'
                     },
                     withCredentials: true,
-                    transformResponse: [function(deathConcept){
-                        if(_.isEmpty(deathConcept)) {
+                    transformResponse: [function (deathConcept) {
+                        if (_.isEmpty(deathConcept)) {
                             $scope.deathConceptExists = false;
-                        }
-                        else{
+                        } else {
                             $http.get(Bahmni.Common.Constants.conceptSearchByFullNameUrl, {
                                 params: {
                                     name: deathConcept,
@@ -39,24 +35,24 @@ angular.module('bahmni.registration')
                                 $scope.deathConceptExists = !!results.data.results.length;
                                 $scope.deathConcepts = results.data.results[0] ? results.data.results[0].setMembers : [];
                                 $scope.deathConcepts = filterRetireDeathConcepts($scope.deathConcepts);
-                            })
+                            });
                         }
                     }]
                 });
             };
             spinner.forPromise($scope.getDeathConcepts());
-            var filterRetireDeathConcepts = function(deathConcepts){
-                return _.filter(deathConcepts,function(concept){
+            var filterRetireDeathConcepts = function (deathConcepts) {
+                return _.filter(deathConcepts, function (concept) {
                     return !concept.retired;
-                })
+                });
             };
 
             $scope.isAutoComplete = function (fieldName) {
                 return !_.isEmpty(autoCompleteFields) ? autoCompleteFields.indexOf(fieldName) > -1 : false;
             };
 
-            $scope.showCasteSameAsLastName = function() {
-                personAttributes = _.map($rootScope.patientConfiguration.attributeTypes, function(attribute){
+            $scope.showCasteSameAsLastName = function () {
+                personAttributes = _.map($rootScope.patientConfiguration.attributeTypes, function (attribute) {
                     return attribute.name.toLowerCase();
                 });
                 var personAttributeHasCaste = personAttributes.indexOf("caste") !== -1;
@@ -70,16 +66,52 @@ angular.module('bahmni.registration')
                 }
             };
 
+            var showSections = function (sectionsToShow, allSections) {
+                _.each(sectionsToShow, function (sectionName) {
+                    allSections[sectionName].canShow = true;
+                    allSections[sectionName].expand = true;
+                });
+            };
 
+            var hideSections = function (sectionsToHide, allSections) {
+                _.each(sectionsToHide, function (sectionName) {
+                    allSections[sectionName].canShow = false;
+                });
+            };
+
+            var executeRule = function (ruleFunction) {
+                var attributesShowOrHideMap = ruleFunction($scope.patient);
+                var patientAttributesSections = $rootScope.patientConfiguration.getPatientAttributesSections();
+                showSections(attributesShowOrHideMap.show, patientAttributesSections);
+                hideSections(attributesShowOrHideMap.hide, patientAttributesSections);
+            };
+
+            $scope.handleUpdate = function (attribute) {
+                var ruleFunction = Bahmni.Registration.AttributesConditions.rules && Bahmni.Registration.AttributesConditions.rules[attribute];
+                if (ruleFunction) {
+                    executeRule(ruleFunction);
+                }
+            };
+
+            var executeShowOrHideRules = function () {
+                _.each(Bahmni.Registration.AttributesConditions.rules, function (rule) {
+                    executeRule(rule);
+                });
+            };
+
+            $scope.$watch('patientLoaded', function () {
+                if ($scope.patientLoaded) {
+                    executeShowOrHideRules();
+                }
+            });
 
             $scope.getAutoCompleteList = function (attributeName, query, type) {
                 return patientAttributeService.search(attributeName, query, type);
             };
 
             $scope.getDataResults = function (data) {
-                return  data.results;
+                return data.results;
             };
-
 
             $scope.$watch('patient.familyName', function () {
                 if ($scope.patient.sameAsLastName) {
@@ -93,15 +125,14 @@ angular.module('bahmni.registration')
                 }
             });
 
-            $scope.selectIsDead = function(){
-                if($scope.patient.causeOfDeath ||$scope.patient.deathDate){
+            $scope.selectIsDead = function () {
+                if ($scope.patient.causeOfDeath || $scope.patient.deathDate) {
                     $scope.patient.dead = true;
                 }
             };
 
-            $scope.disableIsDead = function(){
+            $scope.disableIsDead = function () {
                 return ($scope.patient.causeOfDeath || $scope.patient.deathDate) && $scope.patient.dead;
-            }
-
+            };
         }]);
 

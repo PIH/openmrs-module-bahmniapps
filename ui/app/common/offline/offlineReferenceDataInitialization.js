@@ -1,10 +1,10 @@
 'use strict';
 
 angular.module('bahmni.common.offline')
-    .factory('offlineReferenceDataInitialization', ['offlineService','$http', 'offlineDbService', 'androidDbService', '$q','$rootScope','loggingService', 'messagingService',
-                function (offlineService, $http, offlineDbService, androidDbService, $q, $rootScope, loggingService, messagingService) {
+    .factory('offlineReferenceDataInitialization', ['offlineService', '$http', 'offlineDbService', 'androidDbService', '$q', '$rootScope', 'loggingService', 'messagingService',
+        function (offlineService, $http, offlineDbService, androidDbService, $q, $rootScope, loggingService, messagingService) {
             return function (isAuthenticated) {
-                if(offlineService.isOfflineApp()) {
+                if (offlineService.isOfflineApp()) {
                     if (offlineService.isAndroidApp()) {
                         offlineDbService = androidDbService;
                     }
@@ -28,7 +28,7 @@ angular.module('bahmni.common.offline')
                     var deferred = $q.defer();
 
                     var readReferenceData = function (requests, index) {
-                        if(requests.length == index) {
+                        if (requests.length == index) {
                             deferred.resolve(1);
                             return deferred.promise;
                         }
@@ -36,6 +36,9 @@ angular.module('bahmni.common.offline')
                         var referenceData = requests[index][1];
                         return offlineDbService.getReferenceData(referenceData).then(function (result) {
                             var requestUrl = Bahmni.Common.Constants.hostURL + url;
+                            if (result && Bahmni.Common.Constants.authenticatedReferenceDataMap[url] == "PersonAttributeType") {
+                                result.etag = undefined;
+                            }
                             var req = {
                                 method: 'GET',
                                 url: requestUrl,
@@ -70,13 +73,12 @@ angular.module('bahmni.common.offline')
                                     deferred.reject({"data": Bahmni.Common.Constants.offlineErrorMessages.networkError});
                                     messagingService.showMessage("error", Bahmni.Common.Constants.offlineErrorMessages.networkError);
                                     $rootScope.$broadcast("schedulerStage", null, true);
-                                }
-                                else {
+                                } else {
                                     return readReferenceData(requests, ++index);
                                 }
                                 return deferred.promise;
                             });
-                        })
+                        });
                     };
 
                     return readReferenceData(requests, 0);

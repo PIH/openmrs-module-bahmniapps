@@ -1,18 +1,17 @@
 'use strict';
 
 angular.module('bahmni.registration')
-    .factory('patientService', ['$http', '$rootScope','$bahmniCookieStore','$q', 'patientServiceStrategy', function ($http, $rootScope, $bahmniCookieStore, $q, patientServiceStrategy) {
+    .factory('patientService', ['$http', '$rootScope', '$bahmniCookieStore', '$q', 'patientServiceStrategy', 'sessionService', function ($http, $rootScope, $bahmniCookieStore, $q, patientServiceStrategy, sessionService) {
         var openmrsUrl = Bahmni.Registration.Constants.openmrsUrl;
         var baseOpenMRSRESTURL = Bahmni.Registration.Constants.baseOpenMRSRESTURL;
 
-        var search = function (query, identifier, identifierPrefix, addressFieldName, addressFieldValue, customAttributeValue,
-                               offset, customAttributeFields, programAttributeFieldName, programAttributeFieldValue , addressSearchResultsConfig,
-                               patientSearchResultsConfig) {
+        var search = function (query, identifier, addressFieldName, addressFieldValue, customAttributeValue,
+                               offset, customAttributeFields, programAttributeFieldName, programAttributeFieldValue, addressSearchResultsConfig,
+                               patientSearchResultsConfig, filterOnAllIdentifiers) {
             var config = {
                 params: {
                     q: query,
-                    identifier:identifier,
-                    identifierPrefix: identifierPrefix,
+                    identifier: identifier,
                     s: "byIdOrNameOrVillage",
                     addressFieldName: addressFieldName,
                     addressFieldValue: addressFieldValue,
@@ -21,18 +20,23 @@ angular.module('bahmni.registration')
                     patientAttributes: customAttributeFields,
                     programAttributeFieldName: programAttributeFieldName,
                     programAttributeFieldValue: programAttributeFieldValue,
-                    addressSearchResultsConfig : addressSearchResultsConfig,
-                    patientSearchResultsConfig : patientSearchResultsConfig
+                    addressSearchResultsConfig: addressSearchResultsConfig,
+                    patientSearchResultsConfig: patientSearchResultsConfig,
+                    loginLocationUuid: sessionService.getLoginLocationUuid(),
+                    filterOnAllIdentifiers: filterOnAllIdentifiers
                 },
                 withCredentials: true
             };
             return patientServiceStrategy.search(config);
         };
 
-        var searchByIdentifier = function(identifier){
+        var searchByIdentifier = function (identifier) {
             return $http.get(Bahmni.Common.Constants.bahmniSearchUrl + "/patient", {
                 method: "GET",
-                params: {identifier: identifier},
+                params: {
+                    identifier: identifier,
+                    loginLocationUuid: sessionService.getLoginLocationUuid()
+                },
                 withCredentials: true
             });
         };
@@ -42,8 +46,7 @@ angular.module('bahmni.registration')
         };
 
         var create = function (patient, jumpAccepted) {
-            var data = new Bahmni.Registration.CreatePatientRequestMapper(moment()).mapFromPatient($rootScope.patientConfiguration.attributeTypes, patient);
-            return patientServiceStrategy.create(data, jumpAccepted);
+            return patientServiceStrategy.create(patient, jumpAccepted);
         };
 
         var update = function (patient, openMRSPatient) {

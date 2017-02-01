@@ -24,11 +24,17 @@ angular.module('admin')
             }).state('admin.csv', {
                 url: '/csv',
                 templateUrl: 'views/csvupload.html',
-                controller: 'CSVUploadController'
+                controller: 'CSVUploadController',
+                data: {
+                    backLinks: [{label: "Home", state: "admin.dashboard", icon: "fa-home"}]
+                }
             }).state('admin.csvExport', {
                 url: '/csvExport',
                 templateUrl: 'views/csvexport.html',
-                controller: 'CSVExportController'
+                controller: 'CSVExportController',
+                data: {
+                    backLinks: [{label: "Home", state: "admin.dashboard", icon: "fa-home"}]
+                }
             }).state('admin.orderSetDashboard', {
                 url: '/ordersetdashboard',
                 templateUrl: 'views/orderSetDashboard.html',
@@ -45,7 +51,7 @@ angular.module('admin')
             });
             $httpProvider.defaults.headers.common['Disable-WWW-Authenticate'] = true;
         }
-    ]).run(function ($rootScope, $templateCache) {
-        //Disable caching view template partials
+    ]).run(['$rootScope', '$templateCache', function ($rootScope, $templateCache) {
+        // Disable caching view template partials
         $rootScope.$on('$viewContentLoaded', $templateCache.removeAll);
-    });
+    }]);

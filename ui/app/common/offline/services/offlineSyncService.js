@@ -1,246 +1,213 @@
 'use strict';
 
 angular.module('bahmni.common.offline')
-    .service('offlineSyncService', ['eventLogService', 'offlineDbService', '$q', 'offlineService', 'androidDbService', '$rootScope','loggingService',
-        function (eventLogService, offlineDbService, $q, offlineService, androidDbService, $rootScope,loggingService) {
+    .service('offlineSyncService', ['eventLogService', 'offlineDbService', '$q', 'offlineService', 'androidDbService', '$rootScope', 'loggingService',
+        function (eventLogService, offlineDbService, $q, offlineService, androidDbService, $rootScope, loggingService) {
+            var stages, categories;
 
-                var stages;
-                var sync = function () {
-                    stages = 0;
-                    if (offlineService.isAndroidApp()) {
-                        offlineDbService = androidDbService;
+            var initializeInitSyncInfo = function initializeCounters (categories) {
+                $rootScope.initSyncInfo = {};
+                $rootScope.showSyncInfo = true;
+                _.map(categories, function (category) {
+                    $rootScope.initSyncInfo[category] = {};
+                    $rootScope.initSyncInfo[category].pendingEventsCount = 0;
+                    $rootScope.initSyncInfo[category].savedEventsCount = 0;
+                });
+                $rootScope.initSyncInfo.savedEvents = 0;
+            };
+
+            var sync = function (isInitSync) {
+                stages = 0;
+                if (offlineService.isAndroidApp()) {
+                    offlineDbService = androidDbService;
+                }
+                var promises = [];
+                categories = offlineService.getItem("eventLogCategories");
+                initializeInitSyncInfo(categories);
+                _.map(categories, function (category) {
+                    promises.push(syncForCategory(category, isInitSync));
+                });
+                return $q.all(promises);
+            };
+
+            var syncForCategory = function (category, isInitSync) {
+                return offlineDbService.getMarker(category).then(function (marker) {
+                    if (category == "transactionalData" && isInitSync) {
+                        marker = angular.copy(marker);
+                        marker.filters = offlineService.getItem("initSyncFilter");
                     }
-                    return $q.all([syncConcepts(),syncParentAddressEntries(),syncAddressHierarchyEntries(),syncTransactionalData()]);
-                };
+                    return syncForMarker(category, marker, isInitSync);
+                });
+            };
 
-                var syncConcepts = function() {
-                    return offlineDbService.getMarker("ConceptData").then(function (marker) {
-                        if (marker == undefined) {
-                            marker = {}
-                        }
-                        return syncConceptsForMarker(marker)
-                    });
-                };
+            var updatePendingEventsCount = function updatePendingEventsCount (category, pendingEventsCount) {
+                $rootScope.initSyncInfo[category].pendingEventsCount = pendingEventsCount;
+                $rootScope.initSyncInfo.totalEvents = categories.reduce(function (count, category) {
+                    return count + $rootScope.initSyncInfo[category].savedEventsCount + $rootScope.initSyncInfo[category].pendingEventsCount;
+                }, 0);
+            };
 
-                var syncTransactionalData = function() {
-                    return offlineDbService.getMarker("TransactionalData").then(function (marker) {
-                        if (marker == undefined) {
-                            marker = {
-                                catchmentNumber: offlineService.getItem('catchmentNumber')
-                            }
-                        }
-                        return syncForMarker(marker)
-                    });
-                };
-
-                var syncAddressHierarchyEntries = function (){
-                    return offlineDbService.getMarker("AddressHierarchyData").then(function (marker) {
-                        if(!marker) {
-                            marker = {
-                                catchmentNumber: offlineService.getItem('addressCatchmentNumber')
-                            }
-                        }
-                        return syncAddressHierarchyForMarker(marker);
-                    });
-                };
-
-
-                var syncParentAddressEntries = function() {
-                    return offlineDbService.getMarker("ParentAddressHierarchyData").then(function (marker) {
-                        if (!marker)
-                            marker = {};
-                        return syncAddressHierarchyForMarker(marker, 'parentAddressHierarchy');
-                    });
-                };
-
-                var syncAddressHierarchyForMarker = function (marker, levels) {
-                    return eventLogService.getAddressEventsFor(marker.catchmentNumber, marker.lastReadEventUuid).then(function (response) {
-                        if (response.data == undefined || response.data.length == 0) {
-                            endSync(stages++);
-                            return;
-                        }
-                        return readEvent(response.data, 0, levels);
-                    }, function () {
-                        endSync(-1);
-                        var deferrable = $q.defer();
-                        deferrable.reject();
-                        return deferrable.promise;
-                    });
-                };
-
-
-                var syncConceptsForMarker = function (marker) {
-                    return eventLogService.getConceptEventsFor(marker.lastReadEventUuid).then(function (response) {
-                        if (response.data == undefined || response.data.length == 0) {
-                            endSync(stages++);
-                            return;
-                        }
-                        return readEvent(response.data, 0);
-                    }, function () {
-                        endSync(-1);
-                        var deferrable = $q.defer();
-                        deferrable.reject();
-                        return deferrable.promise;
-                    });
-                };
-
-
-                var syncForMarker = function (marker) {
-                    return eventLogService.getEventsFor(marker.catchmentNumber, marker.lastReadEventUuid).then(function (response) {
-                        if (response.data == undefined || response.data.length == 0) {
-                            endSync(stages++);
-                            return;
-                        }
-                        return readEvent(response.data, 0);
-                    }, function () {
-                        endSync(-1);
-                        var deferrable = $q.defer();
-                        deferrable.reject();
-                        return deferrable.promise;
-                    });
-                };
-
-
-                var syncNextEvents = function(category){
-                    switch (category) {
-                        case 'patient':
-                        case 'Encounter':
-                        case 'SHREncounter':
-                                return syncTransactionalData();
-                        case 'addressHierarchy':
-                                return syncAddressHierarchyEntries();
-                        case 'parentAddressHierarchy':
-                                return syncParentAddressEntries();
-                        case 'offline-concepts':
-                                return syncConcepts();
-                        default:
-                            break;
-                    }
-
-                };
-
-                var readEvent = function (events, index, category) {
-                    if (events.length == index && events.length > 0) {
-                        var group = category ? category : events[0].category;
-                        return syncNextEvents(group);
-                    }
-                    if (events.length == index) {
+            var syncForMarker = function (category, marker, isInitSync) {
+                return eventLogService.getEventsFor(category, marker).then(function (response) {
+                    var events = response.data ? response.data["events"] : undefined;
+                    updatePendingEventsCount(category, response.data.pendingEventsCount);
+                    if (events == undefined || events.length == 0) {
+                        endSync(stages++);
                         return;
                     }
-                    var event = events[index];
-                    event.category = category ? category : event.category;
-                    if(event.category == "SHREncounter") {
-                        var uuid = event.object.match(Bahmni.Common.Constants.uuidRegex)[0];
-                        event.object = Bahmni.Common.Constants.offlineBahmniEncounterUrl + uuid + "?includeAll=true";
-                    }
+                    return readEvent(events, 0, category, isInitSync);
+                }, function () {
+                    endSync(-1);
+                    var deferrable = $q.defer();
+                    deferrable.reject();
+                    return deferrable.promise;
+                });
+            };
 
-                    return eventLogService.getDataForUrl(Bahmni.Common.Constants.hostURL + event.object)
+            var readEvent = function (events, index, category, isInitSync) {
+                if (events.length == index && events.length > 0) {
+                    return syncForCategory(category, isInitSync);
+                }
+                if (events.length == index) {
+                    return;
+                }
+                var event = events[index];
+                if (event.category == "SHREncounter") {
+                    var uuid = event.object.match(Bahmni.Common.Constants.uuidRegex)[0];
+                    event.object = Bahmni.Common.Constants.offlineBahmniEncounterUrl + uuid + "?includeAll=true";
+                }
+                return eventLogService.getDataForUrl(Bahmni.Common.Constants.hostURL + event.object)
                         .then(function (response) {
                             return saveData(event, response)
-                                .then(function() { return updateMarker(event)})
+                                .then(function () {
+                                    updateSavedEventsCount(category);
+                                    return updateMarker(event, category);
+                                })
                                 .then(
-                                    function(lastEvent) {
+                                    function (lastEvent) {
                                         offlineService.setItem("lastSyncTime", lastEvent.lastReadTime);
-                                        return readEvent(events, ++index, category)
+                                        return readEvent(events, ++index, category, isInitSync);
                                     });
-                    }).catch(function(response) {
-                        if(parseInt(response.status / 100) == 4 || parseInt(response.status / 100) == 5) {
-                            loggingService.logSyncError(response.config.url, response.status, response.data);
-                        }
-                        $rootScope.$broadcast("schedulerStage", null, true);
-                        endSync(-1);
-                        var deferrable = $q.defer();
-                        deferrable.reject();
-                        return deferrable.promise;
+                        }).catch(function (response) {
+                            logSyncError(response);
+                            $rootScope.$broadcast("schedulerStage", null, true);
+                            endSync(-1);
+                            var deferrable = $q.defer();
+                            deferrable.reject();
+                            return deferrable.promise;
+                        });
+            };
+
+            var logSyncError = function (response) {
+                if (response && (parseInt(response.status / 100) == 4 || parseInt(response.status / 100) == 5)) {
+                    loggingService.logSyncError(response.config.url, response.status, response.data);
+                }
+            };
+
+            var mapIdentifiers = function (identifiers) {
+                var deferred = $q.defer();
+                return offlineDbService.getReferenceData("IdentifierTypes").then(function (identifierTypesData) {
+                    var identifierTypes = identifierTypesData.data;
+                    angular.forEach(identifiers, function (identifier) {
+                        var matchedIdentifierType = _.find(identifierTypes, {'uuid': identifier.identifierType.uuid});
+                        identifier.identifierType.primary = matchedIdentifierType.primary || false;
                     });
-                };
-
-                var saveData = function (event, response) {
-                    var deferrable = $q.defer();
-                    switch (event.category) {
-                        case 'patient':
-                            if(!response.data.voided) {
-                                offlineDbService.getAttributeTypes().then(function (attributeTypes) {
-                                    mapAttributesToPostFormat(response.data.person.attributes, attributeTypes);
-                                    offlineDbService.createPatient({patient: response.data}).then(function () {
-                                        deferrable.resolve();
-                                    });
-                                });
-                            }
-                            else {
-                                deferrable.resolve();
-                            }
-                            break;
-                        case 'Encounter':
-                        case 'SHREncounter':
-                            offlineDbService.createEncounter(response.data).then(function () {
-                                deferrable.resolve();
-                            });
-                            break;
-                        case 'offline-concepts':
-                            offlineDbService.insertConceptAndUpdateHierarchy({"results": [response.data]}).then(function(){
-                                deferrable.resolve();
-                            });
-                            break;
-                        case 'addressHierarchy':
-                        case 'parentAddressHierarchy':
-                            offlineDbService.insertAddressHierarchy(response.data).then(function () {
-                                deferrable.resolve();
-                            });
-                            break;
-                        default:
-                            deferrable.resolve();
-                            break;
-                    }
-                    return deferrable.promise;
-                };
-
-                var mapAttributesToPostFormat = function (attributes, attributeTypes) {
-                    angular.forEach(attributes, function (attribute) {
-                        if (!attribute.voided) {
-                            var foundAttribute = _.find(attributeTypes, function (attributeType) {
-                                return attributeType.uuid === attribute.attributeType.uuid
-                            });
-                            if ("org.openmrs.Concept" === foundAttribute.format) {
-                                var value = attribute.value;
-                                attribute.value = value.display;
-                                attribute.hydratedObject = value.uuid;
-                            }
-                        }
-                        return;
+                    var extraIdentifiersForSearch = {};
+                    var extraIdentifiers = _.filter(identifiers, {'identifierType': {'primary': false}});
+                    var primaryIdentifier = _.filter(identifiers, {'identifierType': {'primary': true}})[0];
+                    angular.forEach(extraIdentifiers, function (extraIdentifier) {
+                        var name = extraIdentifier.identifierType.display || extraIdentifier.identifierType.name;
+                        extraIdentifiersForSearch[name] = extraIdentifier.identifier;
                     });
-                };
+                    angular.forEach(identifiers, function (identifier) {
+                        identifier.primaryIdentifier = primaryIdentifier.identifier;
+                        identifier.extraIdentifiers = !_.isEmpty(extraIdentifiersForSearch) ? extraIdentifiersForSearch : undefined;
+                    });
+                    deferred.resolve({data: identifiers});
+                    return deferred.promise;
+                });
+            };
 
-                var updateMarker = function (event) {
-                    var markerName, catchmentNumber;
-                    if (event.category == "parentAddressHierarchy") {
-                        markerName = "ParentAddressHierarchyData";
-                        catchmentNumber = null;
-                    }else if (event.category == "addressHierarchy") {
-                        markerName = "AddressHierarchyData";
-                        catchmentNumber = offlineService.getItem("addressCatchmentNumber");
-                    }else if (event.category == "offline-concepts") {
-                        markerName = "ConceptData";
-                        catchmentNumber = null;
-                    }else{
-                        markerName = "TransactionalData";
-                        catchmentNumber = offlineService.getItem('catchmentNumber');
+            var saveData = function (event, response) {
+                var deferrable = $q.defer();
+                switch (event.category) {
+                case 'patient':
+                    offlineDbService.getAttributeTypes().then(function (attributeTypes) {
+                        mapAttributesToPostFormat(response.data.person.attributes, attributeTypes);
+                        mapIdentifiers(response.data.identifiers).then(function () {
+                            offlineDbService.createPatient({patient: response.data}).then(function () {
+                                deferrable.resolve();
+                            });
+                        });
+                    });
+                    break;
+                case 'Encounter':
+                case 'SHREncounter':
+                    offlineDbService.createEncounter(response.data).then(function () {
+                        deferrable.resolve();
+                    });
+                    break;
+                case 'LabOrderResults':
+                    var patientUuid = event.object.match(Bahmni.Common.Constants.uuidRegex)[0];
+                    offlineDbService.insertLabOrderResults(patientUuid, response.data).then(function () {
+                        deferrable.resolve();
+                    });
+                    break;
+
+                case 'offline-concepts':
+                    offlineDbService.insertConceptAndUpdateHierarchy({"results": [response.data]}).then(function () {
+                        deferrable.resolve();
+                    });
+                    break;
+                case 'addressHierarchy':
+                case 'parentAddressHierarchy':
+                    offlineDbService.insertAddressHierarchy(response.data).then(function () {
+                        deferrable.resolve();
+                    });
+                    break;
+                default:
+                    deferrable.resolve();
+                    break;
+                }
+                return deferrable.promise;
+            };
+
+            var mapAttributesToPostFormat = function (attributes, attributeTypes) {
+                angular.forEach(attributes, function (attribute) {
+                    if (!attribute.voided) {
+                        var foundAttribute = _.find(attributeTypes, function (attributeType) {
+                            return attributeType.uuid === attribute.attributeType.uuid;
+                        });
+                        if (foundAttribute.format === "org.openmrs.Concept") {
+                            var value = attribute.value;
+                            attribute.value = value.display;
+                            attribute.hydratedObject = value.uuid;
+                        }
                     }
-                    return offlineDbService.insertMarker(markerName, event.uuid, catchmentNumber);
-                };
+                    return;
+                });
+            };
 
-                var endSync = function (status) {
-                      if (stages == 4 || status == -1){
-                          $rootScope.$broadcast("schedulerStage", null);
-                      }
-                };
+            var updateMarker = function (event, category) {
+                return offlineDbService.getMarker(category).then(function (marker) {
+                    return offlineDbService.insertMarker(marker.markerName, event.uuid, marker.filters);
+                });
+            };
+
+            var updateSavedEventsCount = function (category) {
+                $rootScope.initSyncInfo[category].savedEventsCount++;
+                $rootScope.initSyncInfo[category].pendingEventsCount--;
+                $rootScope.initSyncInfo.savedEvents++;
+            };
+
+            var endSync = function (status) {
+                if (stages == categories.length || status == -1) {
+                    $rootScope.$broadcast("schedulerStage", null);
+                }
+            };
 
             return {
-                sync: sync,
-                syncTransactionalData: syncTransactionalData,
-                syncAddressHierarchyEntries: syncAddressHierarchyEntries,
-                syncParentAddressEntries: syncParentAddressEntries,
-                syncConcepts: syncConcepts
+                sync: sync
             };
         }
     ]);

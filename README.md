@@ -1,5 +1,7 @@
 # Bahmni Apps
 
+[![Build Status](https://travis-ci.org/Bahmni/openmrs-module-bahmniapps.svg?branch=master)](https://travis-ci.org/Bahmni/openmrs-module-bahmniapps)
+
 This repository acts as the front end for the **Bahmni EMR**. It is compeltely written in **AngularJS**.
 
 
@@ -21,7 +23,6 @@ Please visit https://bahmni.atlassian.net/wiki/display/BAH/Working+on+Bahmni+Ope
     |   |-- adt
     |   |-- clinical
     |   |-- common
-    |	|-- dhis
     |   |-- document-upload
     |   |-- home
     |	|-- i18n
@@ -29,7 +30,7 @@ Please visit https://bahmni.atlassian.net/wiki/display/BAH/Working+on+Bahmni+Ope
     |   |-- offline
     |   |-- orders
     |   |-- registration
-    |   `-- reports
+    |   |-- reports
     |
     |-- .jshint.rc
     |-- bower.json

@@ -2,14 +2,13 @@
 
 angular.module('bahmni.common.domain')
     .service('observationsServiceStrategy', ['$q', 'androidDbService', function ($q, androidDbService) {
-
         this.fetch = function (patientUuid, numberOfVisits, params) {
             var deffered = $q.defer();
             androidDbService.getVisitsByPatientUuid(patientUuid, numberOfVisits).then(function (visitUuids) {
                 var mappedVisitUuids = _.map(visitUuids, function (visitUuid) {
                     return visitUuid.uuid;
                 });
-                params.visitUuids = mappedVisitUuids || [];
+                params.visitUuids = params.visitUuid ? [params.visitUuid] : (mappedVisitUuids || []);
                 androidDbService.getObservationsFor(params).then(function (obs) {
                     var mappedObs = _.map(obs, function (ob) {
                         return ob.observation;
@@ -42,12 +41,23 @@ angular.module('bahmni.common.domain')
             return $q.when({"data": {"results": []}});
         };
 
-        this.getAllParentsInHierarchy = function(conceptName){
+        this.fetchObsForVisit = function (params) {
             var deferred = $q.defer();
-            androidDbService.getAllParentsInHierarchy(conceptName).then(function(results){
-                deferred.resolve({data: results});
+
+            androidDbService.getObservationsForVisit(params.visitUuid).then(function (obs) {
+                var mappedObs = _.map(obs, function (ob) {
+                    return ob.observation;
+                });
+                deferred.resolve({data: mappedObs});
             });
             return deferred.promise;
         };
 
+        this.getAllParentsInHierarchy = function (conceptName) {
+            var deferred = $q.defer();
+            androidDbService.getAllParentsInHierarchy(conceptName).then(function (results) {
+                deferred.resolve({data: results});
+            });
+            return deferred.promise;
+        };
     }]);

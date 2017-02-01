@@ -1,12 +1,26 @@
 'use strict';
 
 Bahmni.Registration.CreatePatientRequestMapper = (function () {
-    function CreatePatientRequestMapper(currentDate) {
+    function CreatePatientRequestMapper (currentDate) {
         this.currentDate = currentDate;
     }
 
     CreatePatientRequestMapper.prototype.mapFromPatient = function (patientAttributeTypes, patient) {
         var constants = Bahmni.Registration.Constants;
+        var allIdentifiers = _.concat(patient.extraIdentifiers, patient.primaryIdentifier);
+        var identifiers = _.filter(allIdentifiers, function (identifier) {
+            return !_.isEmpty(identifier.selectedIdentifierSource) || (identifier.identifier !== undefined);
+        });
+        identifiers = _.map(identifiers, function (identifier) {
+            return {
+                identifier: identifier.identifier,
+                identifierSourceUuid: identifier.selectedIdentifierSource ? identifier.selectedIdentifierSource.uuid : undefined,
+                identifierPrefix: identifier.selectedIdentifierSource ? identifier.selectedIdentifierSource.prefix : undefined,
+                identifierType: identifier.identifierType.uuid,
+                preferred: identifier.preferred,
+                voided: identifier.voided
+            };
+        });
         var openMRSPatient = {
             patient: {
                 person: {
@@ -15,30 +29,23 @@ Bahmni.Registration.CreatePatientRequestMapper = (function () {
                             givenName: patient.givenName,
                             middleName: patient.middleName,
                             familyName: patient.familyName,
+                            display: patient.givenName + " " + patient.familyName,
                             "preferred": false
                         }
                     ],
                     addresses: [_.pick(patient.address, constants.allAddressFileds)],
                     birthdate: this.getBirthdate(patient.birthdate, patient.age),
-                    birthdateEstimated: patient.birthdateEstimated ,
+                    birthdateEstimated: patient.birthdateEstimated,
                     gender: patient.gender,
                     birthtime: Bahmni.Common.Util.DateUtil.parseLongDateToServerFormat(patient.birthtime),
                     personDateCreated: patient.registrationDate,
                     attributes: new Bahmni.Common.Domain.AttributeFormatter().getMrsAttributes(patient, patientAttributeTypes),
-                    dead:patient.dead,
+                    dead: patient.dead,
                     deathDate: Bahmni.Common.Util.DateUtil.getDateWithoutTime(patient.deathDate),
                     causeOfDeath: patient.causeOfDeath ? patient.causeOfDeath.uuid : '',
                     uuid: patient.uuid
                 },
-                identifiers: [
-                    {
-                        identifierPrefix: patient.identifierPrefix ? patient.identifierPrefix.prefix : "",
-                        identifierSourceUuid: patient.identifierPrefix ? patient.identifierPrefix.uuid : "",
-                        identifier: patient.identifier,
-                        "preferred": true,
-                        "voided": false
-                    }
-                ],
+                identifiers: identifiers,
                 uuid: patient.uuid
             }
         };
@@ -50,7 +57,7 @@ Bahmni.Registration.CreatePatientRequestMapper = (function () {
 
     CreatePatientRequestMapper.prototype.setImage = function (patient, openMRSPatient) {
         if (patient.getImageData()) {
-            openMRSPatient.image = patient.getImageData()
+            openMRSPatient.image = patient.getImageData();
         }
     };
 

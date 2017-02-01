@@ -16,6 +16,7 @@
         <link rel="stylesheet" href="../components/ngDialog/css/ngDialog-theme-plain.min.css"/>
         <link rel="stylesheet" href="../components/ng-tags-input/ng-tags-input.bootstrap.min.css"/>
         <link rel="stylesheet" href="../components/ng-tags-input/ng-tags-input.min.css"/>
+        <link rel="stylesheet" href="../components/offline/themes/offline-theme-dark.css"/>
 
         <!-- build:css clinical.min.css -->
         <link rel="stylesheet" href="../styles/clinical.css"/>
@@ -29,6 +30,7 @@
                 <div ui-view="content" id="view-content" class="opd-content-wrapper"></div>
             </div>
         </div>
+        <link rel="stylesheet" href="../components/offline/themes/{{getLocaleCSS()}}.css">
         <script src="../components/jquery/jquery.min.js"></script>
         <script src="../lib/jquery/jquery-ui-1.10.4.custom.min.js"></script>
         <script src="../lib/modernizr.custom.80690.js"></script>
@@ -64,8 +66,13 @@
         <script src="../components/angular-file-upload/dist/angular-file-upload.min.js"></script>
         <script src="../components/angular-elastic/elastic.js"></script>
         <script src="../components/hustle/hustle.js"></script>
+        <script src="../components/offline/offline.min.js"></script>
+        <script src="../components/react/react.min.js"></script>
+        <script src="../components/react/react-dom.min.js"></script>
         <script src="../lib/angular-workers/dist/angular-workers.js"></script>
 
+        <script src="../components/bahmni-form-controls/helpers.js"></script>
+        <script src="../components/bahmni-form-controls/bundle.js"></script>
 
         <!-- build:js ../common.offline.min.js -->
         <script src="../common/constants.js"></script>
@@ -75,6 +82,7 @@
         <script src="../common/models/age.js"></script>
         <script src="../common/offline/init.js"></script>
         <script src="../common/offline/offlineService.js"></script>
+        <script src="../common/offline/services/dbNameService.js"></script>
         <script src="../common/offline/initializeOfflineSchema.js"></script>
         <script src="../common/offline/offlineDbInitialization.js"></script>
         <script src="../common/offline/offlineConfigInitialization.js"></script>
@@ -83,18 +91,22 @@
         <script src="../common/offline/offlineSyncInitialization.js"></script>
         <script src="../common/offline/services/eventLogService.js"></script>
         <script src="../common/offline/services/offlineSyncService.js"></script>
+        <script src="../common/offline/services/networkStatusService.js"></script>
         <script src="../common/offline/dbservices/dao/androidDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineSearchDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineDbService.js"></script>
         <script src="../common/offline/dbservices/dao/patientAddressDbService.js"></script>
         <script src="../common/offline/dbservices/dao/patientAttributeDbService.js"></script>
         <script src="../common/offline/dbservices/dao/patientDbService.js"></script>
+        <script src="../common/offline/dbservices/dao/patientIdentifierDbService.js"></script>
         <script src="../common/offline/dbservices/dao/encounterDbService.js"></script>
         <script src="../common/offline/dbservices/dao/errorLogDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineMarkerDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineAddressHierarchyDbService.js"></script>
+        <script src="../common/offline/dbservices/dao/labOrderResultsDbService.js"></script>
         <script src="../common/offline/dbservices/dao/offlineConfigDbService.js"></script>
         <script src="../common/offline/schemaDefinitions.js"></script>
+        <script src="../common/offline/chromeMigrations/migration_1.js"></script>
         <script src="../common/offline/models/UUID.js"></script>
         <script src="../common/offline/models/AddressFields.js"></script>
         <script src="../common/offline/dbservices/dao/referenceDataDbService.js"></script>
@@ -103,6 +115,7 @@
         <script src="../common/offline/dbservices/dao/visitDbService.js"></script>
         <script src="../common/offline/dbservices/dao/observationDbService.js"></script>
         <script src="../common/offline/dbservices/dao/conceptDbService.js"></script>
+        <script src="../common/offline/services/dbNameService.js"></script>
         <script src="../common/offline/offlineDbInitialization.js"></script>
         <script src="../common/offline/scheduler/scheduledSync.js"></script>
         <script src="../common/offline/scheduler/scheduledJob.js"></script>
@@ -127,6 +140,7 @@
         <script src="../common/util/modernizr.tests.js"></script>
         <script src="../common/util/iosLabelFix.js"></script>
         <script src="../common/util/stringFormat.js"></script>
+        <script src="../common/util/offlineStatusService.js"></script>
         <script src="../common/util/dynamicResourceLoader.js"></script>
         <script src="../components/lovefield/dist/lovefield.min.js"></script>
 
@@ -221,11 +235,15 @@
         <script src="../common/ui-helper/directives/backLinks.js"></script>
         <script src="../common/ui-helper/directives/providerDirective.js"></script>
         <script src="../common/ui-helper/directives/focusOn.js"></script>
+        <script src="../common/ui-helper/directives/scrollToObsElement.js"></script>
         <script src="../common/ui-helper/directives/dateConverter.js"></script>
         <script src="../common/ui-helper/directives/compileHtml.js"></script>
         <script src="../common/ui-helper/controllers/messageController.js"></script>
         <script src="../common/ui-helper/services/messagingService.js"></script>
+        <script src="../common/ui-helper/services/confirmBoxService.js"></script>
         <script src="../common/ui-helper/directives/focusOnInputErrors.js"></script>
+        <script src="../common/ui-helper/directives/fixedFirstColumn.js"></script>
+        <script src="../common/ui-helper/directives/assignHeight.js"></script>
 
         <script src="../common/attributeTypes/directives/attributeTypes.js"></script>
         <script src="../common/domain/mappers/attributeTypeMapper.js"></script>
@@ -241,6 +259,7 @@
         <script src="../common/concept-set/directives/obsConstraints.js"></script>
         <script src="../common/concept-set/directives/duration.js"></script>
         <script src="../common/concept-set/models/conceptSetGroupValidationHandler.js"></script>
+        <script src="../common/concept-set/models/conceptSetGroupPanelViewValidationHandler.js"></script>
         <script src="../common/concept-set/models/conceptSetSection.js"></script>
         <script src="../common/concept-set/models/conceptSetObservation.js"></script>
         <script src="../common/concept-set/models/multiSelectObservations.js"></script>
@@ -344,6 +363,7 @@
         <script src="common/models/visitTabConfig.js"></script>
         <script src="common/models/visitDrugOrders.js"></script>
         <script src="common/utils/sortedConceptSet.js"></script>
+        <script src="common/utils/obsGroupingHelper.js"></script>
 
         <script src="common/mappers/accessionNotesMapper.js"></script>
         <script src="common/mappers/encounterTransactionToObsMapper.js"></script>
@@ -398,8 +418,10 @@
         <script src="consultation/models/selectable.js"></script>
         <script src="consultation/models/Specimen.js"></script>
         <script src="consultation/models/drugOrderOptions.js"></script>
+        <script src="consultation/models/observationForm.js"></script>
         <script src="consultation/helpers/urlHelper.js"></script>
         <script src="consultation/helpers/drugOrderHistoryHelper.js"></script>
+        <script src="consultation/helpers/reactHelper.js"></script>
         <script src="consultation/mappers/dispostionActionMapper.js"></script>
         <script src="consultation/mappers/labResultsMapper.js"></script>
         <script src="consultation/mappers/consultationMapper.js"></script>
@@ -411,6 +433,7 @@
         <script src="consultation/services/labTestsProvider.js"></script>
         <script src="consultation/services/otherTestsProvider.js"></script>
         <script src="consultation/services/Notifier.js"></script>
+        <script src="consultation/services/observationFormService.js"></script>
 
         <script src="consultation/services/treatmentConfig.js"></script>
         <script src="consultation/filters/observationValue.js"></script>
@@ -420,6 +443,8 @@
         <script src="consultation/directives/newDrugOrders.js"></script>
         <script src="consultation/directives/newOrderGroup.js"></script>
         <script src="consultation/directives/investigationsSelector.js"></script>
+        <script src="consultation/directives/observationForm.js"></script>
+        <script src="consultation/directives/formControls.js"></script>
         <script src="consultation/controllers/clinicalController.js"></script>
         <script src="consultation/controllers/consultationSummaryController.js"></script>
         <script src="consultation/controllers/diagnosisController.js"></script>
@@ -438,7 +463,7 @@
 
         <!--All displaycontrols includes-->
         <script src="displaycontrols/investigationresults/models/tabularLabOrderResults.js"></script>
-        <script src="displaycontrols/investigationresults/services/labOrderResultService.js"></script>
+
         <script src="displaycontrols/investigationresults/directives/investigationTableRow.js"></script>
         <script src="displaycontrols/investigationresults/directives/investigationTable.js"></script>
         <script src="displaycontrols/investigationresults/directives/investigationChart.js"></script>
@@ -535,6 +560,7 @@
         <script src="../common/orders/services/orderTypeService.js"></script>
         <script src="../common/patient/services/patientService.js"></script>
         <script src="../common/domain/services/locationService.js"></script>
+        <script src="displaycontrols/investigationresults/services/labOrderResultService.js"></script>
         <script src="../common/domain/services/configurationService.js"></script>
         <script src="../common/app-framework/services/loadConfigService.js"></script>
         <script src="../common/domain/services/encounterService.js"></script>
@@ -579,6 +605,8 @@
         <!--<script src="../common/domain/offline/chrome/chromeConfigurationService.js"></script>-->
         <!--<script src="../common/app-framework/offline/chrome/chromeLoadConfigService.js"></script>-->
         <!--<script src="dashboard/services/offline/chrome/chromeDiseaseTemplateService.js"></script>-->
+        <!--<script src="displaycontrols/investigationresults/offline/offlineLabOrderResultsService.js"></script>-->
+        <!--<script src="displaycontrols/investigationresults/offline/chrome/chromeLabOrderResultsService.js"></script>-->
         <!--<script src="../common/domain/offline/offlineEncounterService.js"></script>-->
         <!--<script src="../common/domain/offline/offlineDiagnosisService.js"></script>-->
         <!--<script src="../common/domain/offline/chrome/chromeObservationService.js"></script>-->
@@ -605,6 +633,8 @@
         <!--<script src="../common/domain/offline/android/androidConfigurationService.js"></script>-->
         <!--<script src="../common/app-framework/offline/android/androidLoadConfigService.js"></script>-->
         <!--<script src="dashboard/services/offline/android/androidDiseaseTemplateService.js"></script>-->
+        <!--<script src="displaycontrols/investigationresults/offline/offlineLabOrderResultsService.js"></script>-->
+        <!--<script src="displaycontrols/investigationresults/offline/android/androidLabOrderResultsService.js"></script>-->
         <!--<script src="../common/domain/offline/offlineEncounterService.js"></script>-->
         <!--<script src="../common/domain/offline/offlineDiagnosisService.js"></script>-->
         <!--<script src="../common/domain/offline/offlineObservationService.js"></script>-->

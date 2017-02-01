@@ -10,17 +10,19 @@ angular.module('bahmni.registration')
             var controller = function ($scope) {
                 var self = this;
                 var uuid = $stateParams.patientUuid;
-                var editActionsConfig = appService.getAppDescriptor().getExtensions(Bahmni.Registration.Constants.nextStepConfigId, "config");
+                var editActionsConfig = appService.getAppDescriptor().getExtensions(Bahmni.Registration.Constants.nextStepConfigId, "config") || [];
+                var conceptSetExtensions = appService.getAppDescriptor().getExtensions("org.bahmni.registration.conceptSetGroup.observations", "config");
                 var loginLocationUuid = $bahmniCookieStore.get(Bahmni.Common.Constants.locationCookieName).uuid;
                 var defaultVisitType = $rootScope.regEncounterConfiguration.getDefaultVisitType(loginLocationUuid);
                 defaultVisitType = defaultVisitType ? defaultVisitType : appService.getAppDescriptor().getConfigValue('defaultVisitType');
                 var showStartVisitButton = appService.getAppDescriptor().getConfigValue("showStartVisitButton");
                 showStartVisitButton = showStartVisitButton ? showStartVisitButton : true;
                 var isOfflineApp = offlineService.isOfflineApp();
+                var visitLocationUuid = $rootScope.visitLocation;
 
-                function setForwardActionKey() {
+                function setForwardActionKey () {
                     if (editActionsConfig.length === 0 && isOfflineApp) {
-                        $scope.forwardActionKey = undefined;
+                        $scope.forwardActionKey = conceptSetExtensions.length === 0 ? undefined : 'enterVisitDetails';
                     } else if (editActionsConfig.length === 0) {
                         $scope.forwardActionKey = self.hasActiveVisit ? 'enterVisitDetails' : 'startVisit';
                     } else {
@@ -38,15 +40,21 @@ angular.module('bahmni.registration')
                     var searchParams = {
                         patient: uuid,
                         includeInactive: false,
-                        v: "custom:(uuid)"
+                        v: "custom:(uuid,location:(uuid))"
                     };
-                    spinner.forPromise(visitService.search(searchParams).then(function (data) {
-                        self.hasActiveVisit = data.data.results && (data.data.results.length > 0);
+                    spinner.forPromise(visitService.search(searchParams).then(function (response) {
+                        var results = response.data.results;
+                        var activeVisitForCurrentLoginLocation;
+                        if (results) {
+                            activeVisitForCurrentLoginLocation = _.filter(results, function (result) {
+                                return result.location.uuid === visitLocationUuid;
+                            });
+                        }
+                        self.hasActiveVisit = activeVisitForCurrentLoginLocation && (activeVisitForCurrentLoginLocation.length > 0);
                         self.hasActiveVisit = self.hasActiveVisit ? self.hasActiveVisit : (isOfflineApp ? true : false);
                         setForwardActionKey();
                     }));
                 };
-
 
                 $scope.visitControl = new Bahmni.Common.VisitControl(
                     $rootScope.regEncounterConfiguration.getVisitTypesAsArray(),
@@ -66,15 +74,16 @@ angular.module('bahmni.registration')
                 };
 
                 $scope.actions.followUpAction = function (patientProfileData) {
+                    messagingService.clearAll();
                     switch ($scope.actions.submitSource) {
-                        case 'startVisit':
-                            return createVisit(patientProfileData);
-                        case 'enterVisitDetails':
-                            return goToVisitPage(patientProfileData);
-                        case 'configAction':
-                            return handleConfigAction(patientProfileData);
-                        case 'save':
-                            $scope.afterSave();
+                    case 'startVisit':
+                        return createVisit(patientProfileData);
+                    case 'enterVisitDetails':
+                        return goToVisitPage(patientProfileData);
+                    case 'configAction':
+                        return handleConfigAction(patientProfileData);
+                    case 'save':
+                        $scope.afterSave();
                     }
                 };
 
@@ -93,17 +102,26 @@ angular.module('bahmni.registration')
                     $location.path("/patient/" + patientData.patient.uuid + "/visit");
                 };
 
+                var isEmptyVisitLocation = function () {
+                    return _.isEmpty($rootScope.visitLocation);
+                };
 
                 var createVisit = function (patientProfileData, forwardUrl) {
+                    if (isEmptyVisitLocation()) {
+                        $state.go('patient.edit', {patientUuid: $scope.patient.uuid}).then(function () {
+                            messagingService.showMessage("error", "NO_LOCATION_TAGGED_TO_VISIT_LOCATION");
+                        });
+                        return;
+                    }
                     spinner.forPromise($scope.visitControl.createVisitOnly(patientProfileData.patient.uuid, $rootScope.visitLocation).then(function () {
                         if (forwardUrl) {
                             $window.location.href = forwardUrl;
                         } else {
                             goToVisitPage(patientProfileData);
                         }
-                    }), function () {
+                    }, function () {
                         $state.go('patient.edit', {patientUuid: $scope.patient.uuid});
-                    });
+                    }));
                 };
 
                 init();
@@ -112,6 +130,6 @@ angular.module('bahmni.registration')
                 restrict: 'E',
                 templateUrl: 'views/patientAction.html',
                 controller: controller
-            }
+            };
         }
     ]);

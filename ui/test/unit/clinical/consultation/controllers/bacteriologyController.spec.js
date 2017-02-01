@@ -1,9 +1,10 @@
 describe("Bacteriology Controller", function () {
-    var $scope, rootScope, contextChangeHandler, spinner, conceptSetService, appService, appDescriptor, controller;
+    var $scope, rootScope, contextChangeHandler, spinner, conceptSetService, appService, appDescriptor, controller, retrospectiveEntryService;
     var existingSpecimen = new Bahmni.Clinical.Specimen({
         existingObs: "Existing Obs Uuid",
         dateCollected: "2015-10-01T18:30:00.000Z",
         type: "Blood",
+        uuid: "Specimen uuid",
         identifier: "1234",
         sample: {
             additionalAttributes: {}
@@ -55,7 +56,8 @@ describe("Bacteriology Controller", function () {
             spinner: spinner,
             conceptSetService: conceptSetService,
             bacteriologyConceptSet: {},
-            appService:appService
+            appService:appService,
+            retrospectiveEntryService:retrospectiveEntryService
         });
     };
 
@@ -76,10 +78,12 @@ describe("Bacteriology Controller", function () {
         it("should add specimen to new specimens list", function () {
             createController();
             $scope.newSpecimens = [];
+            $scope.savedSpecimens = [existingSpecimen];
 
             $scope.editSpecimen(existingSpecimen);
 
             expect($scope.newSpecimens[0].existingObs).toBe(existingSpecimen.existingObs);
+            expect($scope.savedSpecimens).toEqual([]);
         });
     });
 
@@ -92,6 +96,19 @@ describe("Bacteriology Controller", function () {
 
             expect(existingSpecimen.voided).toBeTruthy();
         });
+
+        it("should remove specimen from saved specimens and new specimens",function () {
+            createController();
+            $scope.newSpecimens = [existingSpecimen];
+            $scope.savedSpecimens = [existingSpecimen];
+
+            $scope.deleteSpecimen(existingSpecimen);
+
+            expect($scope.savedSpecimens).toEqual([]);
+            expect($scope.newSpecimens[0]).not.toEqual(existingSpecimen);
+            expect($scope.newSpecimens[0].dateCollected).toBeNull();
+
+        })
     });
 
     describe("Get Display Name", function () {

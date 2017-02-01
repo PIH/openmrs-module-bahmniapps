@@ -9,13 +9,13 @@
                 <th class="reports-start-date">{{::'REPORTS_START_DATE_HEADER_KEY ' |translate}}
                     <span class="asterick">*</span>
                     <input ng-model="default.reportsRequiringDateRange.startDate" date-converter
-                           class="form-field start-date" type="date"
+                           class="form-field start-date" type="date" max="{{default.reportsRequiringDateRange.stopDate | date:'yyyy-MM-dd'}}"
                            ng-change="setDefault('startDate', 'reportsRequiringDateRange')">
                 </th>
                 <th class="reports-stop-date">{{::'REPORTS_END_DATE_HEADER_KEY' |translate}}
                     <span class="asterick">*</span>
                     <input ng-model="default.reportsRequiringDateRange.stopDate" date-converter
-                           class="form-field start-date" type="date"
+                           class="form-field start-date" type="date" min="{{default.reportsRequiringDateRange.startDate | date:'yyyy-MM-dd'}}"
                            ng-change="setDefault('stopDate', 'reportsRequiringDateRange')">
                 </th>
                 <th class="reports-format">
@@ -35,11 +35,12 @@
             <tr ng-repeat="report in ::reportsRequiringDateRange">
                 <td>{{:: report.name }}</td>
                 <td class="reports-start-date">
-                    <input date-converter class="form-field start-date" type="date" ng-model="report.startDate">
+                    <input date-converter class="form-field start-date" type="date" max="{{report.stopDate | date:'yyyy-MM-dd'}}"
+                           ng-model="report.startDate">
                 </td>
                 <td class="reports-stop-date">
                     <input date-converter class="form-field stop-date" type="date" min="{{report.startDate | date:'yyyy-MM-dd'}}"
-                                                     ng-model="report.stopDate">
+                            ng-model="report.stopDate">
                 </td>
                 <td class="reports-format">
                     <select ng-model="report.responseType" ng-options="type as label for (label , type) in ::formats">
@@ -50,8 +51,14 @@
                            type="file" accept=".xls" nv-file-select uploader="uploader" options="{report: report}"/>
                 </td>
                 <td class="reports-action">
-                    <button type="submit" class="run-report confirm" ng-click="runReport(report)">
+                    <button ng-if="!enableReportQueue" type="submit" class="run-report confirm" ng-click="downloadReport(report)">
                         {{::'RUN_REPORT_BUTTON_KEY' |translate}}
+                    </button>
+                    <button ng-if="enableReportQueue" type="submit" class="run-report confirm" ng-click="downloadReport(report)">
+                        {{::'RUN_NOW_BUTTON_KEY' |translate}}
+                    </button>
+                    <button ng-if="enableReportQueue" type="submit" class="run-report confirm" ng-click="scheduleReport(report)">
+                        {{::'QUEUE_BUTTON_KEY' |translate}}
                     </button>
                 </td>
             </tr>
@@ -86,7 +93,7 @@
                     </select>
                 </td>
                 <td class="reports-action">
-                    <button type="submit" class="run-report confirm" ng-click="runReport(report)">
+                    <button type="submit" class="run-report confirm" ng-click="scheduleReport(report)">
                         {{::'RUN_REPORT_BUTTON_KEY' |translate}}
                     </button>
                 </td>

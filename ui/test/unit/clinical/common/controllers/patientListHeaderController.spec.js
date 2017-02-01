@@ -4,7 +4,7 @@ describe("PatientListHeaderController", function () {
 
     var scope, ngDialog,
         $bahmniCookieStore, locationService, $window, retrospectiveEntryService,
-        providerService, rootScope, thisController, locationsPromise, offlineService, schedulerService;
+        providerService, rootScope, thisController, locationsPromise, offlineService, schedulerService, offlineStatusService;
     var date = "2015-01-11";
     var encounterProvider = {value: "Test", uuid: "Test_UUID"};
 
@@ -43,6 +43,8 @@ describe("PatientListHeaderController", function () {
         providerService = jasmine.createSpyObj('providerService', ['search']);
         offlineService = jasmine.createSpyObj('offlineService', ['isOfflineApp']);
         schedulerService = jasmine.createSpyObj('schedulerService', ['sync','stopSync']);
+        offlineStatusService = jasmine.createSpyObj('offlineStatusService', ['setOfflineOptions']);
+        ngDialog = jasmine.createSpyObj('ngDialog', ['open','close']);
         $window = {location: { reload: jasmine.createSpy()} };
 
         offlineService.isOfflineApp.and.returnValue(true);
@@ -56,7 +58,8 @@ describe("PatientListHeaderController", function () {
             $window: $window,
             ngDialog: ngDialog,
             offlineService: offlineService,
-            schedulerService: schedulerService
+            schedulerService: schedulerService,
+            offlineStatusService : offlineStatusService
         });
         thisController.windowReload = function () {
         };
@@ -76,7 +79,7 @@ describe("PatientListHeaderController", function () {
             expect($bahmniCookieStore.put).toHaveBeenCalled();
             expect(retrospectiveEntryService.getRetrospectiveDate).toHaveBeenCalled();
             expect($bahmniCookieStore.put.calls.count()).toEqual(2);
-            expect(scope.isOffline).toBeTruthy();
+            expect(scope.isOfflineApp).toBeTruthy();
         });
 
     });
@@ -119,6 +122,50 @@ describe("PatientListHeaderController", function () {
 
         expect(schedulerService.sync).not.toHaveBeenCalled();
         expect(schedulerService.stopSync).not.toHaveBeenCalled();
+    });
+
+    it("should call scheduler sync", function () {
+        scope.sync();
+        expect(schedulerService.sync).toHaveBeenCalled();
+
+    });
+
+    it("should map providersServer output", function () {
+        var providers = scope.getProviderDataResults({
+            data : {
+                results : [
+                    {
+                        uuid : 'uuid1',
+                        person : { display : 'msf1' }
+                    },
+                    {
+                        uuid : 'uuid2',
+                        person : { display : 'msf2' }
+                    }
+                ]
+            }
+        });
+        expect(providers[0].uuid).toBe('uuid1');
+        expect(providers[0].value).toBe('msf1');
+        expect(providers[1].uuid).toBe('uuid2');
+        expect(providers[1].value).toBe('msf2');
+    });
+
+    it("should close ngDialog on closePopUp", function () {
+        scope.closePopUp();
+        expect(ngDialog.close).toHaveBeenCalled();
+
+    });
+
+    it("should open ngDialog on popUpHandler", function () {
+        scope.popUpHandler();
+        expect(ngDialog.open).toHaveBeenCalled();
+
+    });
+
+    it("should call setOfflineOptions of OfflineStatusService", function () {
+        scope.$digest();
+        expect(offlineStatusService.setOfflineOptions).toHaveBeenCalled();
     });
 
 });

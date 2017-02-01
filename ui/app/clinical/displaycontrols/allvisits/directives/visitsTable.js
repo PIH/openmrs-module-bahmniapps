@@ -37,7 +37,7 @@ angular.module('bahmni.clinical')
                     var obsArrayFiltered = [];
                     for (var ob in observation) {
                         if (_.includes(observationTemplateArray, observation[ob].concept.display)) {
-                            obsArrayFiltered.push(observation[ob])
+                            obsArrayFiltered.push(observation[ob]);
                         }
                     }
                     return obsArrayFiltered;
@@ -54,17 +54,15 @@ angular.module('bahmni.clinical')
                     });
                 };
 
-                $scope.getDisplayName = function(data){
+                $scope.getDisplayName = function (data) {
                     var concept = data.concept;
                     var displayName = data.concept.displayString;
-                    if(concept.names && concept.names.length === 1 && concept.names[0].name !== ""){
+                    if (concept.names && concept.names.length === 1 && concept.names[0].name !== "") {
                         displayName = concept.names[0].name;
-                    }
-                    else if(concept.names && concept.names.length === 2){
+                    } else if (concept.names && concept.names.length === 2) {
                         displayName = _.find(concept.names, {conceptNameType: "SHORT"}).name;
                     }
-                    return displayName ;
-
+                    return displayName;
                 };
 
                 $scope.getProviderDisplayName = function (encounter) {
@@ -86,8 +84,7 @@ angular.module('bahmni.clinical')
                     });
                 };
 
-
-                spinner.forPromise(init());
+                $scope.initialization = init();
 
                 $scope.params = angular.extend(
                     {
@@ -97,8 +94,13 @@ angular.module('bahmni.clinical')
 
                 $scope.noVisitsMessage = "No Visits for this patient.";
             };
+            var link = function ($scope, element) {
+                spinner.forPromise($scope.initialization, element);
+            };
+
             return {
                 restrict: 'E',
+                link: link,
                 controller: controller,
                 templateUrl: "displaycontrols/allvisits/views/visitsTable.html",
                 scope: {
@@ -107,5 +109,3 @@ angular.module('bahmni.clinical')
                 }
             };
         }]);
-
-'use strict';

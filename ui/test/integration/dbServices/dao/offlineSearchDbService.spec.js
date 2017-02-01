@@ -1,7 +1,7 @@
 'use strict';
 
 describe('offlineSearchDbService', function () {
-    var offlineSearchDbService, patientDbService, age, patientAddressDbService, patientAttributeDbService, encounterDbService, $q = Q;
+    var offlineSearchDbService, patientDbService, patientIdentifierDbService, age, patientAddressDbService, patientAttributeDbService, encounterDbService, $q = Q;
 
     var mockHttp = jasmine.createSpyObj('$http', ['get']);
     jasmine.getFixtures().fixturesPath = 'base/test/data';
@@ -17,10 +17,11 @@ describe('offlineSearchDbService', function () {
         });
     });
 
-    beforeEach(inject(['offlineSearchDbService', 'patientDbService', 'age', 'patientAddressDbService', 'patientAttributeDbService', 'encounterDbService',
-        function (offlineSearchDbServiceInjected, patientDbServiceInjected, ageInjected, patientAddressDbServiceInjected, patientAttributeDbServiceInjected, encounterDbServiceInjected) {
+    beforeEach(inject(['offlineSearchDbService', 'patientDbService', 'patientIdentifierDbService', 'age', 'patientAddressDbService', 'patientAttributeDbService', 'encounterDbService',
+        function (offlineSearchDbServiceInjected, patientDbServiceInjected, patientIdentifierDbServiceInjected, ageInjected, patientAddressDbServiceInjected, patientAttributeDbServiceInjected, encounterDbServiceInjected) {
             offlineSearchDbService = offlineSearchDbServiceInjected;
             patientDbService = patientDbServiceInjected;
+            patientIdentifierDbService = patientIdentifierDbServiceInjected;
             age = ageInjected;
             patientAddressDbService = patientAddressDbServiceInjected;
             patientAttributeDbService = patientAttributeDbServiceInjected;
@@ -31,6 +32,7 @@ describe('offlineSearchDbService', function () {
     var createAndSearch = function (params, done) {
         var schemaBuilder = lf.schema.create('BahmniTest', 2);
         Bahmni.Tests.OfflineDbUtils.createTable(schemaBuilder, Bahmni.Common.Offline.SchemaDefinitions.Patient);
+        Bahmni.Tests.OfflineDbUtils.createTable(schemaBuilder, Bahmni.Common.Offline.SchemaDefinitions.PatientIdentifier);
         Bahmni.Tests.OfflineDbUtils.createTable(schemaBuilder, Bahmni.Common.Offline.SchemaDefinitions.Encounter);
         Bahmni.Tests.OfflineDbUtils.createTable(schemaBuilder, Bahmni.Common.Offline.SchemaDefinitions.PatientAttribute);
         Bahmni.Tests.OfflineDbUtils.createTable(schemaBuilder, Bahmni.Common.Offline.SchemaDefinitions.PatientAttributeType);
@@ -45,12 +47,14 @@ describe('offlineSearchDbService', function () {
                     return patientDbService.insertPatientData(db, patientJson).then(function (uuid) {
                         var patient = patientJson.patient;
                         var person = patient.person;
-                        return patientAddressDbService.insertAddress(db, uuid, person.addresses[0]).then(function () {
-                            return patientAttributeDbService.insertAttributes(db, uuid, person.attributes, attributeTypeMap).then(function () {
-                                return encounterDbService.insertEncounterData(db, encounterJson).then(function () {
-                                    return offlineSearchDbService.search(params).then(function (result) {
-                                        return result;
-                                        done();
+                        return patientIdentifierDbService.insertPatientIdentifiers(db, patient.uuid, patient.identifiers).then(function () {
+                            return patientAddressDbService.insertAddress(db, uuid, person.addresses[0]).then(function () {
+                                return patientAttributeDbService.insertAttributes(db, uuid, person.attributes, attributeTypeMap).then(function () {
+                                    return encounterDbService.insertEncounterData(db, encounterJson).then(function () {
+                                        return offlineSearchDbService.search(params).then(function (result) {
+                                            return result;
+                                            done();
+                                        });
                                     });
                                 });
                             });
@@ -58,7 +62,6 @@ describe('offlineSearchDbService', function () {
                     });
                 });
             });
-
         });
     };
 
@@ -110,7 +113,7 @@ describe('offlineSearchDbService', function () {
         };
 
         createAndSearch(params).then(function (result) {
-            expect(result.data.pageOfResults[0].addressFieldValue).toEqual({ 'stateProvince' : 'Chattisgarh' });
+            expect(result.data.pageOfResults[0].addressFieldValue["state_province"]).toEqual('Chattisgarh');
             done();
         });
 
@@ -126,6 +129,7 @@ describe('offlineSearchDbService', function () {
             addressFieldName: 'address2'
         };
 
+        patientJson.patient.identifiers[0].primaryIdentifier = patientJson.patient.identifiers[0].identifier;
         createAndSearch(params).then(function (result) {
             expect(result.data.pageOfResults[0].identifier).toBe(searchString);
             done();
@@ -171,6 +175,97 @@ describe('offlineSearchDbService', function () {
             done();
         });
 
+    });
+
+    it('Should not get patient on search, if the patient is voided', function (done) {
+        var searchString = "test";
+        var params = {
+            q: searchString,
+            s: "byIdOrNameOrVillage",
+            startIndex: 0,
+            addressFieldName: 'address2'
+        };
+
+        patientJson.patient.voided = true;
+        createAndSearch(params, done).then(function (result) {
+            expect(result.data.pageOfResults.length).toBe(0);
+            patientJson.patient.voided = false;
+            done();
+        });
+    });
+
+    it('Should fetch patient with primary identifier on search, if the patient has multiple identifiers', function (done) {
+        var searchString = "GAN200076";
+        var params = {
+            q: searchString,
+            s: "byIdOrNameOrVillage",
+            startIndex: 0,
+            addressFieldName: 'address2'
+        };
+
+        var extraIdentifier = {
+            "uuid": "99996aeb-2877-4340-b9fd-abba016a84a3",
+            "identifier": "SecodaryIdentifier",
+            "identifierSourceUuid": "99997b48-8792-11e5-ade6-005056b07f03",
+            "identifierType": {
+                "uuid": "99993852-3f10-11e4-adec-0800271c1b75",
+                "display": "Bahmni Sec Id",
+                "primary": false
+            },
+            "location": null,
+            "preferred": true,
+            "voided": false,
+            "resourceVersion": "1.8"
+        };
+
+        patientJson.patient.identifiers.push(extraIdentifier);
+
+        var extraIdentifiers = {Bahmni: "SEC2908216"};
+        patientJson.patient.identifiers[0].primaryIdentifier = "GAN200076";
+        patientJson.patient.identifiers[0].extraIdentifiers = extraIdentifiers;
+        createAndSearch(params, done).then(function (result) {
+            expect(result.data.pageOfResults.length).toBe(1);
+            expect(result.data.pageOfResults[0].identifier).toBe("GAN200076");
+            expect(result.data.pageOfResults[0].extraIdentifiers).toBe(JSON.stringify(extraIdentifiers));
+            done();
+        });
+    });
+
+    it('Should fetch patient with secondary identifier on search, if the patient has multiple identifiers', function (done) {
+        var searchString = "SEC2908216";
+        var params = {
+            q: searchString,
+            s: "byIdOrNameOrVillage",
+            startIndex: 0,
+            addressFieldName: 'address2'
+        };
+
+        var extraIdentifier = {
+            "uuid": "99996aeb-2877-4340-b9fd-abba016a84a3",
+            "identifier": "SEC2908216",
+            "identifierSourceUuid": "99997b48-8792-11e5-ade6-005056b07f03",
+            "identifierType": {
+                "uuid": "99993852-3f10-11e4-adec-0800271c1b75",
+                "display": "Bahmni",
+                "primary": false
+            },
+            "location": null,
+            "preferred": true,
+            "voided": false,
+            "resourceVersion": "1.8"
+        };
+
+        patientJson.patient.identifiers.push(extraIdentifier);
+
+        var extraIdentifiers = {Bahmni: "SEC2908216"};
+        patientJson.patient.identifiers[0].primaryIdentifier = "GAN200076";
+        patientJson.patient.identifiers[0].extraIdentifiers = extraIdentifiers;
+        createAndSearch(params, done).then(function (result) {
+            expect(result.data.pageOfResults.length).toBe(1);
+            expect(result.data.pageOfResults[0].identifier).toBe("GAN200076");
+            expect(result.data.pageOfResults[0].extraIdentifiers).toBe(JSON.stringify(extraIdentifiers));
+            done();
+        });
     });
 
     it('Should search for patient by Education(custom attribute)', function (done) {
