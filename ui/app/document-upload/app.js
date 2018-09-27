@@ -2,7 +2,7 @@
 
 angular.module('documentupload', ['ui.router', 'bahmni.common.config', 'opd.documentupload', 'bahmni.common.patient',
     'authentication', 'bahmni.common.appFramework', 'ngDialog', 'httpErrorInterceptor', 'bahmni.common.domain', 'bahmni.common.i18n',
-    'bahmni.common.uiHelper', 'ngSanitize', 'bahmni.common.patientSearch', 'bahmni.common.util', 'bahmni.common.routeErrorHandler', 'pascalprecht.translate', 'ngCookies', 'bahmni.common.offline']);
+    'bahmni.common.uiHelper', 'ngSanitize', 'bahmni.common.patientSearch', 'bahmni.common.util', 'bahmni.common.routeErrorHandler', 'pascalprecht.translate', 'ngCookies']);
 angular.module('documentupload').config(['$stateProvider', '$httpProvider', '$urlRouterProvider', '$bahmniTranslateProvider', '$compileProvider',
     function ($stateProvider, $httpProvider, $urlRouterProvider, $bahmniTranslateProvider, $compileProvider) {
         $urlRouterProvider.otherwise('/search');
@@ -66,8 +66,8 @@ angular.module('documentupload').config(['$stateProvider', '$httpProvider', '$ur
 
         $httpProvider.defaults.headers.common['Disable-WWW-Authenticate'] = true;
         $bahmniTranslateProvider.init({app: 'document-upload', shouldMerge: true});
-    }]).run(['backlinkService', function (backlinkService) {
+    }]).run(['backlinkService', '$window', function (backlinkService, $window) {
         FastClick.attach(document.body);
-
+        moment.locale($window.localStorage["NG_TRANSLATE_LANG_KEY"] || "en");
         backlinkService.addBackUrl();
     }]);

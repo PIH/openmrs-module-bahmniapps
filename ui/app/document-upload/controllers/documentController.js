@@ -1,8 +1,11 @@
 'use strict';
 
 angular.module('opd.documentupload')
-    .controller('DocumentController', ['$scope', '$stateParams', 'visitService', 'patientService', 'encounterService', 'spinner', 'visitDocumentService', '$rootScope', '$http', '$q', '$timeout', 'sessionService', '$anchorScroll', '$translate',
-        function ($scope, $stateParams, visitService, patientService, encounterService, spinner, visitDocumentService, $rootScope, $http, $q, $timeout, sessionService, $anchorScroll, $translate) {
+    .controller('DocumentController', ['$scope', '$stateParams', 'visitService', 'patientService', 'encounterService',
+        'spinner', 'visitDocumentService', '$rootScope', '$http', '$q', '$timeout', 'sessionService', '$anchorScroll',
+        '$translate', 'messagingService',
+        function ($scope, $stateParams, visitService, patientService, encounterService, spinner, visitDocumentService,
+                  $rootScope, $http, $q, $timeout, sessionService, $anchorScroll, $translate, messagingService) {
             var encounterTypeUuid;
             var topLevelConceptUuid;
             var customVisitParams = Bahmni.DocumentUpload.Constants.visitRepresentation;
@@ -12,6 +15,7 @@ angular.module('opd.documentupload')
             var locationUuid = sessionService.getLoginLocationUuid();
 
             $scope.visits = [];
+            $scope.fileTypeConcepts = [];
             $scope.toggleGallery = true;
             $scope.conceptNameInvalid = false;
 
@@ -33,8 +37,7 @@ angular.module('opd.documentupload')
             };
 
             var createVisit = function (visit) {
-                var newVisit = angular.extend(new Bahmni.DocumentUpload.Visit(), visit);
-                return newVisit;
+                return angular.extend(new Bahmni.DocumentUpload.Visit(), visit);
             };
 
             var getVisitTypes = function () {
@@ -50,37 +53,23 @@ angular.module('opd.documentupload')
             };
 
             var getVisitStartStopDateTime = function (visit) {
-                return { "startDatetime": DateUtil.getDate(visit.startDatetime), "stopDatetime": DateUtil.getDate(visit.stopDatetime)};
-            };
-
-            var compareVisitStartWithExistingStop = function (newVisitStart, existingVisit) {
-                if (newVisitStart >= existingVisit.startDatetime && DateUtil.isInvalid(existingVisit.stopDatetime)) {
-                    return true;
-                }
-                return (newVisitStart <= existingVisit.stopDatetime || DateUtil.isSameDate(newVisitStart, existingVisit.stopDatetime));
-            };
-
-            var compareVisitStopWithExistingStart = function (newVisitStop, existingVisitStart) {
-                return (newVisitStop >= existingVisitStart || DateUtil.isSameDate(newVisitStop, existingVisitStart));
+                return {
+                    "startDatetime": DateUtil.getDate(visit.startDatetime),
+                    "stopDatetime": DateUtil.getDate(visit.stopDatetime)
+                };
             };
 
             var isVisitInSameRange = function (newVisitWithoutTime, existingVisit) {
-                if (DateUtil.isInvalid(existingVisit.stopDatetime)) {
-                    return (compareVisitStartWithExistingStop(newVisitWithoutTime.startDatetime, existingVisit) ||
-                        compareVisitStopWithExistingStart(newVisitWithoutTime.stopDatetime, existingVisit.startDatetime));
-                } else {
-                    return (compareVisitStartWithExistingStop(newVisitWithoutTime.startDatetime, existingVisit) &&
-                        compareVisitStopWithExistingStart(newVisitWithoutTime.stopDatetime, existingVisit.startDatetime));
-                }
+                return existingVisit.startDatetime <= newVisitWithoutTime.stopDatetime && (newVisitWithoutTime.startDatetime <= existingVisit.stopDatetime || DateUtil.isInvalid(existingVisit.stopDatetime));
             };
 
             $scope.isNewVisitDateValid = function () {
                 var filterExistingVisitsInSameDateRange = function (existingVisit) {
-                    return isVisitInSameRange(newVisitWithoutTime, existingVisit);
+                    return !DateUtil.isInvalid(newVisitWithoutTime.startDatetime) ? isVisitInSameRange(newVisitWithoutTime, existingVisit) : false;
                 };
                 var newVisitWithoutTime = {};
                 newVisitWithoutTime.startDatetime = DateUtil.getDate($scope.newVisit.startDatetime);
-                newVisitWithoutTime.stopDatetime = $scope.newVisit.stopDatetime ? DateUtil.getDate($scope.newVisit.stopDatetime) : newVisitWithoutTime.startDatetime;
+                newVisitWithoutTime.stopDatetime = $scope.newVisit.stopDatetime ? DateUtil.getDate($scope.newVisit.stopDatetime) : DateUtil.now();
                 var visitStartStopDateTime = $scope.visits.map(getVisitStartStopDateTime);
                 var existingVisitsInSameRange = visitStartStopDateTime.filter(filterExistingVisitsInSameDateRange);
                 $scope.isDateValid = existingVisitsInSameRange.length === 0;
@@ -88,7 +77,11 @@ angular.module('opd.documentupload')
             };
 
             var getVisits = function () {
-                return visitService.search({patient: $rootScope.patient.uuid, v: customVisitParams, includeInactive: true}).then(function (response) {
+                return visitService.search({
+                    patient: $rootScope.patient.uuid,
+                    v: customVisitParams,
+                    includeInactive: true
+                }).then(function (response) {
                     var visits = response.data.results;
                     if (visits.length > 0) {
                         if (!visits[0].stopDatetime) {
@@ -106,22 +99,12 @@ angular.module('opd.documentupload')
             var getEncountersForVisits = function () {
                 return encounterService.getEncountersForEncounterType($rootScope.patient.uuid, encounterTypeUuid).success(function (encounters) {
                     $scope.visits.forEach(function (visit) {
-                        var visitEncounters = encounters.results.filter(function (a) { return (a.visit.uuid == visit.uuid); });
+                        var visitEncounters = encounters.results.filter(function (a) {
+                            return (a.visit.uuid === visit.uuid);
+                        });
                         visit.initSavedFiles(visitEncounters);
                     });
                 });
-            };
-
-            var setDefaultConcept = function (topLevelConcept) {
-                if (topLevelConcept.setMembers.length === 1) {
-                    var concept = topLevelConcept.setMembers[0];
-                    $scope.defaultConcept = {'concept': {uuid: concept.uuid, name: concept.name.name, editableName: concept.name.name}, 'value': concept.name.name};
-                } else if ($rootScope.appConfig.defaultOption) {
-                    var concept = topLevelConcept.setMembers.filter(function (member) {
-                        return member.name.name === $rootScope.appConfig.defaultOption;
-                    })[0];
-                    $scope.defaultConcept = {'concept': {uuid: concept.uuid, name: concept.name.name, editableName: concept.name.name}, 'value': concept.name.name};
-                }
             };
 
             var getTopLevelConcept = function () {
@@ -135,9 +118,20 @@ angular.module('opd.documentupload')
                         v: "custom:(uuid,setMembers:(uuid,name:(name)))"
                     }
                 }).then(function (response) {
+                    if (response.data.results[0].setMembers && response.data.results[0].setMembers.length > 0) {
+                        response.data.results[0].setMembers.forEach(function (concept) {
+                            var conceptToAdd = {
+                                'concept': {
+                                    uuid: concept.uuid,
+                                    name: concept.name.name,
+                                    editableName: concept.name.name
+                                }
+                            };
+                            $scope.fileTypeConcepts.push(conceptToAdd);
+                        });
+                    }
                     var topLevelConcept = response.data.results[0];
                     topLevelConceptUuid = topLevelConcept ? topLevelConcept.uuid : null;
-                    setDefaultConcept(topLevelConcept);
                 });
             };
 
@@ -179,48 +173,68 @@ angular.module('opd.documentupload')
             spinner.forPromise(init());
 
             $scope.getConcepts = function (request) {
-                return $http.get(Bahmni.Common.Constants.conceptUrl, { params: {q: request.term, memberOf: topLevelConceptUuid, v: "custom:(uuid,name)"}}).then(function (result) {
+                return $http.get(Bahmni.Common.Constants.conceptUrl, {
+                    params: {
+                        q: request.term,
+                        memberOf: topLevelConceptUuid,
+                        v: "custom:(uuid,name)"
+                    }
+                }).then(function (result) {
                     return result.data.results;
                 });
             };
 
             $scope.getDataResults = function (results) {
                 return results.map(function (concept) {
-                    return {'concept': {uuid: concept.uuid, name: concept.name.name, editableName: concept.name.name}, 'value': concept.name.name};
+                    return {
+                        'concept': {uuid: concept.uuid, name: concept.name.name, editableName: concept.name.name},
+                        'value': concept.name.name
+                    };
                 });
             };
 
-            $scope.onSelect = function (file, visit) {
+            $scope.onSelect = function (file, visit, fileName, fileType) {
                 $scope.toggleGallery = false;
-                spinner.forPromise(visitDocumentService.saveFile(file, $rootScope.patient.uuid, $rootScope.appConfig.encounterType).then(function (response) {
-                    var fileUrl = Bahmni.Common.Constants.documentsPath + '/' + response.data.url;
-                    var savedFile = visit.addFile(fileUrl);
-                    $scope.setConceptOnFile(savedFile, $scope.defaultConcept);
+                fileType = visitDocumentService.getFileType(fileType);
+                if (fileType !== "not_supported") {
+                    spinner.forPromise(visitDocumentService.saveFile(file, $rootScope.patient.uuid, $rootScope.appConfig.encounterType, fileName, fileType).then(function (response) {
+                        var fileUrl = Bahmni.Common.Constants.documentsPath + '/' + response.data.url;
+                        var savedFile = visit.addFile(fileUrl);
+                        $scope.toggleGallery = true;
+                    }, function () {
+                        messagingService.showMessage("error");
+                        $scope.toggleGallery = true;
+                    }));
+                } else {
+                    messagingService.showMessage("error", "File type is not supported");
                     $scope.toggleGallery = true;
-                }));
-            };
-
-            $scope.setConceptOnFile = function (file, selectedItem) {
-                if (selectedItem) {
-                    file.concept = Object.create(selectedItem.concept);
-                    file.changed = true;
                     if (!$scope.$$phase) {
                         $scope.$apply();
                     }
                 }
             };
 
-            $scope.onEditConcept = function (file) {
-                return function () {
-                    file.concept.name = undefined;
-                    file.concept.uuid = undefined;
-                };
+            $scope.toInitFileConcept = function (file) {
+                if (file.concept && file.concept.editableName) {
+                    return;
+                }
+                file.concept = Object.create($scope.fileTypeConcepts[0].concept);
+                file.changed = true;
             };
 
             $scope.onConceptSelected = function (file) {
-                return function (selectedItem) {
-                    $scope.setConceptOnFile(file, selectedItem);
-                };
+                var selectedItem = _.find($scope.fileTypeConcepts, function (fileType) {
+                    return _.get(fileType, 'concept.name') == _.get(file, 'concept.editableName');
+                });
+                if (selectedItem && selectedItem.concept) {
+                    file.concept = Object.create(selectedItem.concept);
+                }
+                file.changed = true;
+            };
+
+            $scope.enableSaveButtonOnCommentChange = function (file, visit) {
+                _.set(file, 'changed', true);
+                _.set(visit, 'changed', true);
             };
 
             $scope.resetCurrentVisit = function (visit) {
@@ -258,27 +272,38 @@ angular.module('opd.documentupload')
 
                 visit.files.forEach(function (file) {
                     var fileUrl = file.encodedValue.replace(Bahmni.Common.Constants.documentsPath + "/", "");
+                    var comment = _.isEmpty(file.comment) ? undefined : file.comment;
                     if (!visit.isSaved(file)) {
-                        visitDocument.documents.push({testUuid: file.concept.uuid, image: fileUrl, obsDateTime: getEncounterStartDateTime(visit)});
+                        visitDocument.documents.push({
+                            testUuid: file.concept.uuid,
+                            image: fileUrl,
+                            obsDateTime: getEncounterStartDateTime(visit),
+                            comment: comment
+                        });
                     } else if (file.changed === true || file.voided === true) {
-                        visitDocument.documents.push({testUuid: file.concept.uuid, image: fileUrl, voided: file.voided, obsUuid: file.obsUuid});
+                        visitDocument.documents.push({
+                            testUuid: file.concept.uuid,
+                            image: fileUrl,
+                            voided: file.voided,
+                            obsUuid: file.obsUuid,
+                            comment: comment
+                        });
                     }
                 });
 
                 return visitDocument;
             };
 
-            function flashSuccessMessage () {
+            var flashSuccessMessage = function () {
                 $scope.success = true;
                 $timeout(function () {
                     $scope.success = false;
                 }, 2000);
-            }
+            };
 
             $scope.setDefaultEndDate = function (newVisit) {
                 if (!newVisit.stopDatetime) {
-                    var date = newVisit.endDate() ? DateUtil.parse(newVisit.endDate()) : new Date();
-                    $scope.newVisit.stopDatetime = date;
+                    $scope.newVisit.stopDatetime = newVisit.endDate() ? DateUtil.parse(newVisit.endDate()) : new Date();
                 }
             };
 
@@ -291,7 +316,9 @@ angular.module('opd.documentupload')
             };
 
             var updateVisit = function (visit, encounters) {
-                var visitEncounters = encounters.filter(function (encounter) { return visit.uuid === encounter.visit.uuid; });
+                var visitEncounters = encounters.filter(function (encounter) {
+                    return visit.uuid === encounter.visit.uuid;
+                });
                 visit.initSavedFiles(visitEncounters);
                 visit.changed = false;
                 $scope.currentVisit = visit;
@@ -308,7 +335,6 @@ angular.module('opd.documentupload')
                 if (isExistingVisit(visit) || $scope.isNewVisitDateValid()) {
                     visitDocument = createVisitDocument(visit);
                 }
-
                 return spinner.forPromise(visitDocumentService.save(visitDocument).then(function (response) {
                     return encounterService.getEncountersForEncounterType($scope.patient.uuid, encounterTypeUuid).then(function (encounterResponse) {
                         var savedVisit = $scope.visits[$scope.visits.indexOf(visit)];

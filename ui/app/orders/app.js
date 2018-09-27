@@ -3,7 +3,8 @@ angular
     .module('orders', ['ui.router', 'bahmni.orders', 'bahmni.common.domain', 'bahmni.common.patient', 'authentication', 'bahmni.common.config', 'bahmni.common.appFramework',
         'httpErrorInterceptor', 'bahmni.common.routeErrorHandler', 'bahmni.common.uiHelper', 'bahmni.common.patientSearch', 'bahmni.common.util', 'bahmni.common.conceptSet',
         'RecursionHelper', 'infinite-scroll', 'bahmni.common.displaycontrol.patientprofile', 'bahmni.common.obs', 'bahmni.common.displaycontrol.orders', 'bahmni.common.i18n',
-        'bahmni.common.displaycontrol.observation', 'bahmni.common.orders', 'pascalprecht.translate', 'ngCookies', 'bahmni.common.offline', 'bahmni.common.uicontrols'])
+        'bahmni.common.displaycontrol.observation', 'bahmni.common.orders', 'pascalprecht.translate', 'ngCookies', 'bahmni.common.uicontrols', 'bahmni.common.logging',
+        'bahmni.common.gallery'])
     .config(['$urlRouterProvider', '$stateProvider', '$httpProvider', '$bahmniTranslateProvider', '$compileProvider',
         function ($urlRouterProvider, $stateProvider, $httpProvider, $bahmniTranslateProvider, $compileProvider) {
             $httpProvider.defaults.headers.common['Disable-WWW-Authenticate'] = true;
@@ -70,7 +71,8 @@ angular
             $bahmniTranslateProvider.init({app: 'orders', shouldMerge: true});
         }]
 
-).run(['backlinkService', function (backlinkService) {
+).run(['backlinkService', '$window', function (backlinkService, $window) {
+    moment.locale($window.localStorage["NG_TRANSLATE_LANG_KEY"] || "en");
     backlinkService.addUrl({label: "Patient Search", url: "../home/"});
 }]);
 

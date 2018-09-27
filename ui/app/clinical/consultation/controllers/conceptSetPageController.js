@@ -3,10 +3,10 @@
 angular.module('bahmni.clinical')
     .controller('ConceptSetPageController', ['$scope', '$rootScope', '$stateParams', 'conceptSetService',
         'clinicalAppConfigService', 'messagingService', 'configurations', '$state', 'spinner',
-        'contextChangeHandler', '$q', '$translate', 'observationFormService',
+        'contextChangeHandler', '$q', '$translate', 'formService',
         function ($scope, $rootScope, $stateParams, conceptSetService,
                   clinicalAppConfigService, messagingService, configurations, $state, spinner,
-                  contextChangeHandler, $q, $translate, observationFormService) {
+                  contextChangeHandler, $q, $translate, formService) {
             $scope.consultation.selectedObsTemplate = $scope.consultation.selectedObsTemplate || [];
             $scope.allTemplates = $scope.allTemplates || [];
             $scope.scrollingEnabled = false;
@@ -27,40 +27,47 @@ angular.module('bahmni.clinical')
                     }).then(function (response) {
                         var allTemplates = response.data.results[0].setMembers;
                         createConceptSections(allTemplates);
-                        $scope.allTemplates = getSelectedObsTemplate(allConceptSections);
-                        $scope.uniqueTemplates = _.uniqBy($scope.allTemplates, 'label');
                         if ($state.params.programUuid) {
                             showOnlyTemplatesFilledInProgram();
                         }
 
                         // Retrieve Form Details
                         if (!($scope.consultation.observationForms !== undefined && $scope.consultation.observationForms.length > 0)) {
-                            spinner.forPromise(observationFormService.getFormList($scope.consultation.encounterUuid)
+                            spinner.forPromise(formService.getFormList($scope.consultation.encounterUuid)
                                 .then(function (response) {
                                     $scope.consultation.observationForms = getObservationForms(response.data);
-                                    $scope.allTemplates = $scope.allTemplates.concat($scope.consultation.observationForms);
-                                    if ($scope.consultation.selectedObsTemplate.length == 0) {
-                                        initializeDefaultTemplates();
-                                        if ($scope.consultation.observations && $scope.consultation.observations.length > 0) {
-                                            addTemplatesInSavedOrder();
-                                        }
-                                        var templateToBeOpened = getLastVisitedTemplate() ||
-                                            _.first($scope.consultation.selectedObsTemplate);
-
-                                        if (templateToBeOpened) {
-                                            openTemplate(templateToBeOpened);
-                                        }
-                                    }
+                                    concatObservationForms();
                                 })
                             );
+                        } else {
+                            concatObservationForms();
                         }
                     }));
                 }
             };
 
+            var concatObservationForms = function () {
+                $scope.allTemplates = getSelectedObsTemplate(allConceptSections);
+                $scope.uniqueTemplates = _.uniqBy($scope.allTemplates, 'label');
+                $scope.allTemplates = $scope.allTemplates.concat($scope.consultation.observationForms);
+                if ($scope.consultation.selectedObsTemplate.length == 0) {
+                    initializeDefaultTemplates();
+                    if ($scope.consultation.observations && $scope.consultation.observations.length > 0) {
+                        addTemplatesInSavedOrder();
+                    }
+                    var templateToBeOpened = getLastVisitedTemplate() ||
+                        _.first($scope.consultation.selectedObsTemplate);
+
+                    if (templateToBeOpened) {
+                        openTemplate(templateToBeOpened);
+                    }
+                }
+            };
+
             var addTemplatesInSavedOrder = function () {
                 var templatePreference = JSON.parse(localStorage.getItem("templatePreference"));
-                if (templatePreference && templatePreference.patientUuid == $scope.patient.uuid) {
+                if (templatePreference && templatePreference.patientUuid === $scope.patient.uuid &&
+                    !_.isEmpty(templatePreference.templates) && $rootScope.currentProvider.uuid === templatePreference.providerUuid) {
                     insertInSavedOrder(templatePreference);
                 } else {
                     insertInDefaultOrder();
@@ -70,10 +77,16 @@ angular.module('bahmni.clinical')
             var insertInSavedOrder = function (templatePreference) {
                 var templateNames = templatePreference.templates;
                 _.each(templateNames, function (templateName) {
-                    var foundTemplate = _.find($scope.allTemplates, function (allTemplate) {
+                    var foundTemplates = _.filter($scope.allTemplates, function (allTemplate) {
                         return allTemplate.conceptName === templateName;
                     });
-                    insertTemplate(foundTemplate);
+                    if (foundTemplates.length > 0) {
+                        _.each(foundTemplates, function (template) {
+                            if (!_.isEmpty(template.observations)) {
+                                insertTemplate(template);
+                            }
+                        });
+                    }
                 });
             };
 

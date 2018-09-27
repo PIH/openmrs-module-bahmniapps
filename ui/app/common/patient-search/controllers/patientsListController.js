@@ -2,8 +2,8 @@
 
 angular.module('bahmni.common.patientSearch')
 .controller('PatientsListController', ['$scope', '$window', 'patientService', '$rootScope', 'appService', 'spinner',
-    '$stateParams', '$bahmniCookieStore', 'offlineService', 'printer', 'configurationService',
-    function ($scope, $window, patientService, $rootScope, appService, spinner, $stateParams, $bahmniCookieStore, offlineService, printer, configurationService) {
+    '$stateParams', '$bahmniCookieStore', 'printer', 'configurationService',
+    function ($scope, $window, patientService, $rootScope, appService, spinner, $stateParams, $bahmniCookieStore, printer, configurationService) {
         var initialize = function () {
             var searchTypes = appService.getAppDescriptor().getExtensions("org.bahmni.patient.search", "config").map(mapExtensionToSearchType);
             $scope.search = new Bahmni.Common.PatientSearch.Search(_.without(searchTypes, undefined));
@@ -66,15 +66,20 @@ angular.module('bahmni.common.patientSearch')
             }
             return [];
         };
-
-        $scope.isHeadingOfIdentifier = function (heading) {
-            return _.includes(Bahmni.Common.PatientSearch.Constants.identifierHeading, heading);
+        $scope.isHeadingOfLinkColumn = function (heading) {
+            var identifierHeading = _.includes(Bahmni.Common.PatientSearch.Constants.identifierHeading, heading);
+            if (identifierHeading) {
+                return identifierHeading;
+            } else if ($scope.search.searchType && $scope.search.searchType.links) {
+                return _.find($scope.search.searchType.links, {linkColumn: heading});
+            }
+            else if ($scope.search.searchType && $scope.search.searchType.linkColumn) {
+                return _.includes([$scope.search.searchType.linkColumn], heading);
+            }
         };
-
         $scope.isHeadingOfName = function (heading) {
             return _.includes(Bahmni.Common.PatientSearch.Constants.nameHeading, heading);
         };
-
         $scope.getPrintableHeadings = function (patients) {
             var headings = $scope.getHeadings(patients);
             var printableHeadings = headings.filter(function (heading) {
@@ -82,7 +87,6 @@ angular.module('bahmni.common.patientSearch')
             });
             return printableHeadings;
         };
-
         $scope.printPage = function () {
             if ($scope.search.searchType.printHtmlLocation != null) {
                 printer.printFromScope($scope.search.searchType.printHtmlLocation, $scope);
@@ -90,9 +94,6 @@ angular.module('bahmni.common.patientSearch')
         };
 
         var mapExtensionToSearchType = function (appExtn) {
-            if (offlineService.isOfflineApp() && appExtn.offline == false) {
-                return;
-            }
             return {
                 name: appExtn.label,
                 display: appExtn.extensionParams.display,
@@ -106,7 +107,9 @@ angular.module('bahmni.common.patientSearch')
                 printHtmlLocation: appExtn.extensionParams.printHtmlLocation || null,
                 additionalParams: appExtn.extensionParams.additionalParams,
                 searchColumns: appExtn.extensionParams.searchColumns,
-                translationKey: appExtn.extensionParams.translationKey
+                translationKey: appExtn.extensionParams.translationKey,
+                linkColumn: appExtn.extensionParams.linkColumn,
+                links: appExtn.extensionParams.links
             };
         };
 
@@ -114,31 +117,30 @@ angular.module('bahmni.common.patientSearch')
             $rootScope.currentSearchType = currentSearchType;
             if ($scope.search.isCurrentSearchLookUp()) {
                 getPatientCount(currentSearchType);
-            } else {
-                if (offlineService.isOfflineApp()) {
-                    var duration = appService.getAppDescriptor().getConfigValue('recentPatientsDuration');
-                    patientService.getRecentPatients(duration).then(function (response) {
-                        $scope.search.updatePatientList(response.data.pageOfResults);
-                    });
-                }
             }
         };
 
-        $scope.forwardPatient = function (patient) {
+        $scope.forwardPatient = function (patient, heading) {
             var options = $.extend({}, $stateParams);
+            $rootScope.patientAdmitLocationStatus = patient.Status;
             $.extend(options, {
                 patientUuid: patient.uuid,
                 visitUuid: patient.activeVisitUuid || null,
                 encounterUuid: $stateParams.encounterUuid || 'active',
                 programUuid: patient.programUuid || null,
                 enrollment: patient.enrollment || null,
-                forwardUrl: patient.forwardUrl || null
+                forwardUrl: patient.forwardUrl || null,
+                dateEnrolled: patient.dateEnrolled || null
             });
-
-            if (options.forwardUrl !== null) {
-                $window.open(appService.getAppDescriptor().formatUrl(options.forwardUrl, options, true), '_blank');
-            } else {
-                $window.location = appService.getAppDescriptor().formatUrl($scope.search.searchType.forwardUrl, options, true);
+            var link = options.forwardUrl ? {
+                url: options.forwardUrl,
+                newTab: true
+            } : {url: $scope.search.searchType.forwardUrl, newTab: false};
+            if ($scope.search.searchType.links) {
+                link = _.find($scope.search.searchType.links, {linkColumn: heading}) || link;
+            }
+            if (link.url && link.url !== null) {
+                $window.open(appService.getAppDescriptor().formatUrl(link.url, options, true), link.newTab ? "_blank" : "_self");
             }
         };
         initialize();

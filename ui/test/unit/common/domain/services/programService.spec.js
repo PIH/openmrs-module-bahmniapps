@@ -402,7 +402,8 @@ describe('programService', function () {
                 format: 'java.lang.String',
                 answers: [],
                 required: false,
-                concept: {dataType: undefined}
+                concept: {dataType: undefined},
+                excludeFrom: []
             }, {
                 uuid: '82325788-3f10-11es-adec-0800271c1b75',
                 sortWeight: 3,
@@ -412,7 +413,8 @@ describe('programService', function () {
                 format: 'java.lang.Boolean',
                 answers: [],
                 required: false,
-                concept: {dataType: undefined}
+                concept: {dataType: undefined},
+                excludeFrom: []
             }]);
 
         });
@@ -646,5 +648,28 @@ describe('programService', function () {
         programService.getPatientPrograms('patientUuid', false, 'patientProgramUuid');
 
         mockBackend.flush();
-    })
+    });
+
+    it("should get enrollment informantion for a patient with given patientUuid", function () {
+        mockBackend.expectGET(Bahmni.Common.Constants.programEnrollPatientUrl + "?patient=patientUuid&v=custom:(uuid,dateEnrolled,program:(uuid),patient:(uuid))").respond(
+            {
+                "results": [
+                    {
+                        "uuid": "110387db-8f0e-4c8c-9a3b-f4893e678b1c",
+                        "dateEnrolled": "2016-10-09T00:00:00.000+0300",
+                        "program": {
+                            "uuid": "029262f3-b618-4c1e-80c2-d4ecadd38fb2"
+                        },
+                        "patient": {
+                            "uuid": "f8d489b0-57a5-440b-9627-07297cb47997"
+                        }
+                    }
+                ]
+            }
+        );
+
+        programService.getEnrollmentInfoFor('patientUuid', 'custom:(uuid,dateEnrolled,program:(uuid),patient:(uuid))');
+        mockBackend.flush();
+    });
+
 });

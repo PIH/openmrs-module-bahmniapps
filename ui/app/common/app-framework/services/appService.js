@@ -4,8 +4,8 @@ angular.module('bahmni.common.appFramework')
     .config(['$compileProvider', function ($compileProvider) {
         $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|ftp|mailto|chrome-extension|file):/);
     }])
-    .service('appService', ['$http', '$q', 'sessionService', '$rootScope', 'mergeService', 'loadConfigService', 'messagingService',
-        function ($http, $q, sessionService, $rootScope, mergeService, loadConfigService, messagingService) {
+    .service('appService', ['$http', '$q', 'sessionService', '$rootScope', 'mergeService', 'loadConfigService', 'messagingService', '$translate',
+        function ($http, $q, sessionService, $rootScope, mergeService, loadConfigService, messagingService, $translate) {
             var currentUser = null;
             var baseUrl = Bahmni.Common.Constants.baseUrl;
             var customUrl = Bahmni.Common.Constants.customUrl;
@@ -112,6 +112,10 @@ angular.module('bahmni.common.appFramework')
                 }
             };
 
+            var hasPrivilegeOf = function (privilegeName) {
+                return _.some(currentUser.privileges, {name: privilegeName});
+            };
+
             var loadPageConfig = function (pageName, appDescriptor) {
                 var deferrable = $q.defer();
                 loadConfig(baseUrl + appDescriptor.contextPath + "/" + pageName + ".json").then(
@@ -177,6 +181,14 @@ angular.module('bahmni.common.appFramework')
 
             this.getAppName = function () {
                 return this.appName;
+            };
+
+            this.checkPrivilege = function (privilegeName) {
+                if (hasPrivilegeOf(privilegeName)) {
+                    return $q.when(true);
+                }
+                messagingService.showMessage("error", $translate.instant(Bahmni.Common.Constants.privilegeRequiredErrorMessage) + " [Privileges required: " + privilegeName + "]");
+                return $q.reject();
             };
 
             this.initApp = function (appName, options, extensionFileSuffix, configPages) {

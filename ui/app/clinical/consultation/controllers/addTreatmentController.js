@@ -3,10 +3,10 @@
 angular.module('bahmni.clinical')
     .controller('AddTreatmentController', ['$scope', '$rootScope', 'contextChangeHandler', 'treatmentConfig', 'drugService',
         '$timeout', 'clinicalAppConfigService', 'ngDialog', '$window', 'messagingService', 'appService', 'activeDrugOrders',
-        'orderSetService', '$q', 'locationService', 'spinner',
+        'orderSetService', '$q', 'locationService', 'spinner', '$translate',
         function ($scope, $rootScope, contextChangeHandler, treatmentConfig, drugService, $timeout,
                   clinicalAppConfigService, ngDialog, $window, messagingService, appService, activeDrugOrders,
-                  orderSetService, $q, locationService, spinner) {
+                  orderSetService, $q, locationService, spinner, $translate) {
             var DateUtil = Bahmni.Common.Util.DateUtil;
             var DrugOrderViewModel = Bahmni.Clinical.DrugOrderViewModel;
             var scrollTop = _.partial($window.scrollTo, 0, 0);
@@ -466,14 +466,14 @@ angular.module('bahmni.clinical')
             var contextChange = function () {
                 var errorMessages = Bahmni.Clinical.Constants.errorMessages;
                 if (isSameDrugBeingDiscontinuedAndOrdered()) {
-                    return {allow: false, errorMessage: errorMessages.discontinuingAndOrderingSameDrug};
+                    return {allow: false, errorMessage: $translate.instant(errorMessages.discontinuingAndOrderingSameDrug)};
                 }
                 if ($scope.incompleteDrugOrders()) {
                     $scope.formInvalid = true;
                     return {allow: false};
                 }
                 if ($scope.unaddedDrugOrders()) {
-                    return {allow: false, errorMessage: errorMessages.incompleteForm};
+                    return {allow: false, errorMessage: $translate.instant(errorMessages.incompleteForm)};
                 }
                 return {allow: true};
             };
@@ -588,7 +588,7 @@ angular.module('bahmni.clinical')
                         var removableOrder = _.find(activeDrugOrders, {uuid: discontinuedDrug.uuid});
                         if (discontinuedDrug) {
                             removableOrder.orderReasonText = discontinuedDrug.orderReasonText;
-                            removableOrder.dateActivated = discontinuedDrug.dateStopped;
+                            removableOrder.dateActivated = null;
                             removableOrder.scheduledDate = discontinuedDrug.dateStopped;
                             removableOrder.dateStopped = discontinuedDrug.dateStopped;
 
@@ -607,13 +607,15 @@ angular.module('bahmni.clinical')
             };
 
             var putCalculatedDose = function (orderTemplate) {
+                var visitUuid = treatmentConfig.orderSet.calculateDoseOnlyOnCurrentVisitValues ? $scope.activeVisit.uuid : undefined;
                 var calculatedDose = orderSetService.getCalculatedDose(
                     $scope.patient.uuid,
                     orderTemplate.concept.name,
                     orderTemplate.dosingInstructions.dose,
                     orderTemplate.dosingInstructions.doseUnits,
                     $scope.newOrderSet.name,
-                    orderTemplate.dosingInstructions.dosingRule
+                    orderTemplate.dosingInstructions.dosingRule,
+                    visitUuid
                 );
                 if (calculatedDose.$$state.status == 0) $scope.isSearchDisabled = false;
                 return calculatedDose.then(function (calculatedDosage) {

@@ -4,12 +4,16 @@
 
         <div class="patient-info">
             <div>
-                <a class="patient-img" href="{{getDashboardLink()}}" ng-click="changeContext($event)">
+                <a class="patient-img" href="{{::getDashboardLink()}}" ng-click="changeContext($event)">
                     <img class="patient-image" ng-src="{{::patient.image}}" fallback-src="../images/blank-user.gif">
                 </a>
                 <div class="patient-handler">
                     <h4 class="patient-name">
-                    <a href="{{getDashboardLink()}}" ng-click="changeContext($event)"><span bo-text="patient.name"></span></a><span ng-show="patient.genderText" ng-bind-html="' ('+patient.genderText+')'"></span></h4>
+                        <a href="{{::getDashboardLink()}}" ng-click="changeContext($event)">
+                            <span bo-text="patient.name"></span>
+                        </a>
+                        <span ng-show="patient.genderText" ng-bind-html="' ('+patient.genderText+')'"></span>
+                    </h4>
                     <h5 class="patient-identifier"><span bo-text="patient.identifier"></span></h5>
                 </div>
             </div>
@@ -19,9 +23,9 @@
             <span class="ward" bo-text="bedDetails.wardName + ' ' + bedDetails.bedNumber"></span>
         </div>
 
-        <h2>Actions</h2>
+        <h2>{{'CONTROL_PANEL_ACTIONS'|translate}}</h2>
         <ul>
-            <li class="btn-patient-doc">
+            <li class="btn-patient-doc" ng-click="$parent.toggleControlPanel()">
                 <div bm-gallery patient="patient" access-impression="true">
                     <a href="" bm-lazy-image-observation-gallery-items promise="documentsPromise" ><i class="fa fa-file-o fa-white"></i>{{"PATIENT_DOCUMENT_TRANSLATION_KEY"|translate}}</a>
                 </div>
@@ -31,7 +35,7 @@
             </li>
         </ul>
 
-        <h2>Other Actions</h2>        
+        <h2>{{'CONTROL_PANEL_OTHER_ACTIONS'|translate}}</h2>
         <ul class="bahmni-home">
             <li><a class="header-logo" href="../home/index.html"><i class="fa fa-home"></i>{{"BAHMNI_HOME_TRANSLATION_KEY"| translate}}</a></li>
         </ul>
@@ -42,7 +46,7 @@
                     ({{$parent.currentUser.username}}-
                 </span>
                 <span ng-show="$parent.currentUser.currentLocation">
-                    {{$parent.currentUser.currentLocation}})
+                    {{$parent.currentUser.currentLocation | translate}})
                 </span></a>
             </li>
         </ul>

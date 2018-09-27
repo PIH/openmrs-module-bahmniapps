@@ -1,11 +1,95 @@
 'use strict';
 
 describe("ConsultationController", function () {
-
     var scope, rootScope, state, contextChangeHandler, urlHelper, location, clinicalAppConfigService,
-        stateParams, appService, ngDialog, q, appDescriptor, controller, visitConfig, _window_, clinicalDashboardConfig, sessionService;
+        stateParams, appService, ngDialog, q, appDescriptor, controller, visitConfig, _window_, clinicalDashboardConfig,
+        sessionService, conditionsService, encounterService, configurations, diagnosisService, messagingService, spinnerMock,
+        auditLogService;
 
-    clinicalDashboardConfig = jasmine.createSpyObj('clinicalDashboardConfig',['isCurrentTab']);
+    var encounterData = {
+        "bahmniDiagnoses": [],
+        "observations": [
+            {
+                "encounterDateTime": 1492592793000,
+                "visitStartDateTime": null,
+                "groupMembers": [
+                    {
+                        "encounterDateTime": 1492592793000,
+                        "groupMembers": [],
+                        "type": "Boolean",
+                        "encounterUuid": "2ade5330-2e81-40e8-aa24-43d84ad4e3b2",
+                        "obsGroupUuid": "ad986314-114c-4770-be60-e44eacbc30dc",
+                        "conceptNameToDisplay": "Smoking History",
+                        "observationDateTime": "2017-04-19T14:38:26.000+0530",
+                        "voided": false,
+                        "concept": {
+                            "uuid": "c2a43174-c9db-4e54-8516-17372c83537f",
+                            "name": "Smoking History",
+                            "dataType": "Boolean",
+                            "shortName": "Smoking History"
+                        },
+                        "valueAsString": "Yes",
+                        "conceptUuid": "c2a43174-c9db-4e54-8516-17372c83537f",
+                        "uuid": "5d1483c0-222d-46a8-92b1-64361395dc4c",
+                        "value": true,
+                        "comment": null
+                    }
+                ],
+                "providers": [
+                    {
+                        "uuid": "c19c914b-a9f0-4f2b-a148-20e72788d314",
+                        "name": "nurseOne nurseOne",
+                        "encounterRoleUuid": "a0b03050-c99b-11e0-9572-0800200c9a66"
+                    }
+                ],
+                "encounterUuid": "2ade5330-2e81-40e8-aa24-43d84ad4e3b2",
+                "parentConceptUuid": null,
+                "conceptNameToDisplay": "History and Examination",
+                "orderUuid": null,
+                "observationDateTime": "2017-04-19T14:38:26.000+0530",
+                "voided": false,
+                "concept": {
+                    "uuid": "c393fd1d-3f10-11e4-adec-0800271c1b75",
+                    "name": "History and Examination",
+                    "dataType": "N/A",
+                    "shortName": "History and Examination",
+                    "conceptClass": "Misc",
+                    "set": true
+                },
+                "valueAsString": "true",
+                "conceptUuid": "c393fd1d-3f10-11e4-adec-0800271c1b75",
+                "uuid": "ad986314-114c-4770-be60-e44eacbc30dc",
+                "value": "true"
+            }
+        ],
+        "encounterType": "FIELD",
+        "visitType": null,
+        "patientId": "GAN203128",
+        "patientUuid": "c699a5e8-c08a-451f-6793-1cf925a7a204",
+        "drugOrders": [],
+        "encounterTypeUuid": "71e22322-dda5-4194-af60-29e2202a5b3f",
+        "locationUuid": "c1f25be5-3f10-11e4-adec-0800271c1b75",
+        "encounterDateTime": "2017-04-19T14:36:33.000+0530",
+        "encounterUuid": "2ade5330-2e81-40e8-aa24-43d84ad4e3b2",
+        "visitUuid": "fe429540-c977-49ad-8ed8-6c3e39fa706d",
+        "visitTypeUuid": "c5fb299e-4dcf-41ee-a98c-210fe2d4d6d0",
+        "locationName": "Subcenter 1 (BAM)",
+        "orders": [],
+        "providers": [
+            {
+                "uuid": "c19c914b-a9f0-4f2b-a148-20e72788d314",
+                "name": "nurseOne nurseOne",
+                "encounterRoleUuid": "a0b03050-c99b-11e0-9572-0800200c9a66"
+            }
+        ],
+        "context": {},
+        "extensions": {
+            "mdrtbSpecimen": []
+        }
+    };
+    clinicalDashboardConfig = jasmine.createSpyObj('clinicalDashboardConfig', ['isCurrentTab']);
+    var translate = jasmine.createSpyObj('$translate', ['instant']);
+    appService = jasmine.createSpyObj('appService', ['getAppDescriptor', 'getConfigValue']);
     var boards = [
         {
             default: true,
@@ -33,12 +117,13 @@ describe("ConsultationController", function () {
             url: "treatment"
         }
     ];
-    var createController = function(){
+    var createController = function () {
         return controller('ConsultationController', {
             $scope: scope,
             $rootScope: rootScope,
             $state: state,
             $location: location,
+            $translate: translate,
             clinicalAppConfigService: clinicalAppConfigService,
             urlHelper: urlHelper,
             contextChangeHandler: contextChangeHandler,
@@ -51,37 +136,44 @@ describe("ConsultationController", function () {
             appService: appService,
             clinicalDashboardConfig: clinicalDashboardConfig,
             ngDialog: ngDialog,
-            visitConfig : visitConfig
+            visitConfig: visitConfig,
+            conditionsService: conditionsService,
+            encounterService: encounterService,
+            configurations: configurations,
+            diagnosisService: diagnosisService,
+            messagingService: messagingService,
+            spinner: spinnerMock,
+            auditLogService: auditLogService
         });
     };
     var setUpServiceMocks = function () {
         location = {
             path: function () {
             }, url: function (url) {
-                return url
+                return url;
             }
         };
 
         clinicalAppConfigService = {
             getAllConsultationBoards: function () {
-                return boards
-            }, getConsultationBoardLink: function () {
-                return []
+                return boards;
             },
-            getVisitTypeForRetrospectiveEntries: function(){
+            getConsultationBoardLink: function () {
+                return [];
+            },
+            getVisitTypeForRetrospectiveEntries: function () {
                 return {};
             },
-            getDefaultVisitType: function(){
+            getDefaultVisitType: function () {
                 return "IPD";
             }
         };
 
         sessionService = {
-            getLoginLocationUuid: function(){
+            getLoginLocationUuid: function () {
                 return "uuid";
             }
         };
-
         stateParams = {configName: 'default'};
         state = {
             name: "patient.dashboard.show",
@@ -92,58 +184,103 @@ describe("ConsultationController", function () {
                 enrollment: "somePatientProgramUuid"
             },
             go: function () {
+            },
+            transitionTo: function (state, paramOne) {
+                return {};
             }
         };
         contextChangeHandler = {
             execute: function () {
-                return {allow: true}
+                return {allow: true};
             }, reset: function () {
             }
         };
         urlHelper = {
             getPatientUrl: function () {
-                return "/patient/somePatientUuid/dashboard"
+                return "/patient/somePatientUuid/dashboard";
             }
         };
         ngDialog = jasmine.createSpyObj('ngDialog', ['close', 'closeAll']);
         rootScope.collapseControlPanel = function () {
         };
+        rootScope.currentProvider = { uuid: 'providerUuid' };
         scope.lastConsultationTabUrl = {url: {}};
-        appService = jasmine.createSpyObj('appService', ['getAppDescriptor']);
-        appDescriptor = jasmine.createSpyObj('appDescriptor', ['getConfigValue']);
-        appService.getAppDescriptor.and.returnValue(appDescriptor);
-        appDescriptor.getConfigValue.and.returnValue(true);
-
         q = jasmine.createSpyObj('q', ['all', 'defer']);
         visitConfig = {};
+        configurations = {
+            dosageFrequencyConfig: function () {
+                return {};
+            },
+            dosageInstructionConfig: function () {
+                return {};
+            },
+            consultationNoteConcept: function () {
+                return {};
+            },
+            labOrderNotesConcept: function () {
+                return {};
+            },
+            stoppedOrderReasonConfig: function () {
+                return {};
+            }
+        };
+        conditionsService = jasmine.createSpyObj('conditionalService', ['save', 'getConditions']);
+        conditionsService.save.and.returnValue(specUtil.simplePromise({}));
+        conditionsService.getConditions.and.returnValue([{uuid: "condition-uuid", conditionNonCoded: "fever"}]);
+        encounterService = jasmine.createSpyObj('encounterService', ['getEncounterType', 'create']);
+        encounterService.getEncounterType.and.returnValue(specUtil.simplePromise({}));
+        messagingService = jasmine.createSpyObj('messagingService', ['showMessage']);
+        diagnosisService = jasmine.createSpyObj('diagnosisService', ['populateDiagnosisInformation']);
+        encounterService.create.and.returnValue(specUtil.createFakePromise(encounterData));
+        encounterService.create.and.callFake(function () {
+            var deferred = Q.defer();
+            deferred.resolve({data: encounterData});
+            return deferred.promise;
+        });
+        spinnerMock = {
+            forPromise: function (promise, element) {
+                return promise;
+            }
+        };
+        auditLogService = jasmine.createSpyObj('auditLogService', ['log']);
+        auditLogService.log.and.returnValue({});
     };
+    beforeEach(module('bahmni.common.util'));
     beforeEach(module('bahmni.clinical'));
-    beforeEach(module('bahmni.common.offline'));
-    beforeEach(function(){
+    beforeEach(function () {
         inject(function ($controller, $rootScope, _$window_) {
             _window_ = _$window_;
             scope = $rootScope.$new();
             rootScope = $rootScope;
             controller = $controller;
         });
+        appDescriptor = {
+            formatUrl: function (url) {
+                return url;
+            },
+            getConfigValue: function (value) {
+                if(value === 'adtNavigationConfig') {
+                    return {forwardUrl: "../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}", "privilege": "app:adt"};
+                }
+                return true;
+            }
+        };
+        appService.getAppDescriptor.and.returnValue(appDescriptor);
     });
     beforeEach(setUpServiceMocks);
     beforeEach(createController);
 
-
-    describe("init",function(){
-
-        it("should initialize all the necessary variables",function(){
-          expect(scope.togglePrintList).toBeFalsy();
-          expect(scope.patient).toEqual({});
-          expect(scope.showDashboardMenu).toBeFalsy();
-          expect(scope.showComment).toBeTruthy();
-          expect(scope.consultationBoardLink).toEqual([]);
-          expect(scope.showControlPanel).toBeFalsy();
-
+    describe("init", function () {
+        it("should initialize all the necessary variables", function () {
+            expect(scope.togglePrintList).toBeFalsy();
+            expect(scope.patient).toEqual({});
+            expect(scope.showDashboardMenu).toBeFalsy();
+            expect(scope.showComment).toBeTruthy();
+            expect(scope.consultationBoardLink).toEqual([]);
+            expect(scope.showControlPanel).toBeFalsy();
         });
 
-        it("should initialize the available boards", function(){
+        it("should initialize the available boards", function () {
             expect(scope.availableBoards.length).toBe(2);
         });
 
@@ -151,7 +288,7 @@ describe("ConsultationController", function () {
             location = {
                 path: function () {
                 }, url: function (url) {
-                    return "/default/patient/somePatientUuid/dashboard"
+                    return "/default/patient/somePatientUuid/dashboard";
                 }
             };
             _window_ = null;
@@ -174,9 +311,26 @@ describe("ConsultationController", function () {
             expect(scope.isInEditEncounterMode()).toBeTruthy();
         });
 
+        it("should get ipd configuration from config", function () {
+            appDescriptor = {
+                formatUrl: function (url) {
+                    return url;
+                },
+                getConfigValue: function (value) {
+                    if(value === 'adtNavigationConfig') {
+                        return {forwardUrl: "../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}", "privilege": "app:adt"};
+                    }
+                    return true;
+                }
+            };
+            scope.adtNavigationConfig = {forwardUrl: "../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}"};
+            appService.getAppDescriptor.and.returnValue(appDescriptor);
+            createController();
+            expect(scope.adtNavigationConfig.forwardUrl).toEqual("../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}");
+        });
     });
 
-    describe("tabUrl", function(){
+    describe("tabUrl", function () {
         it("should return proper URL when showing a different board", function () {
             scope.lastConsultationTabUrl = {url: undefined};
             scope.consultation = {discontinuedDrugs: [{dateStopped: new Date()}]};
@@ -184,7 +338,7 @@ describe("ConsultationController", function () {
             expect(newUrl).toEqual("/default/patient/somePatientUuid/dashboard/treatment?encounterUuid=someEncounterUuid&programUuid=someProgramUuid&enrollment=somePatientProgramUuid&tabConfigName=tbTabConfig");
             expect(scope.currentBoard.label).toBe("Treatment");
             expect(scope.currentBoard.isSelectedTab).toBeTruthy();
-            expect(scope.lastConsultationTabUrl.url ).toBe(newUrl);
+            expect(scope.lastConsultationTabUrl.url).toBe(newUrl);
         });
 
         it("should return proper URL with extension params as parameters with url", function () {
@@ -206,34 +360,34 @@ describe("ConsultationController", function () {
             location = {
                 path: function () {
                 }, url: function (url) {
-                    return "/default/patient/somePatientUuid/dashboard/treatment?programUuid=someProgramUuid&tabConfigName=tbTabConfig"
+                    return "/default/patient/somePatientUuid/dashboard/treatment?programUuid=someProgramUuid&tabConfigName=tbTabConfig";
                 }
             };
             createController();
 
             expect(scope.currentBoard).toEqual({
-                    extensionPointId: "org.bahmni.clinical.consultation.board",
-                    icon: "icon-user-md",
-                    id: "bahmni.clinical.billing.treatment",
-                    label: "Treatment",
-                    order: 7,
-                    extensionParams: {
-                        "tabConfigName": "tbTabConfig"
-                    },
-                    requiredPrivilege: "app:clinical:consultationTab",
-                    translationKey: "Treatment",
-                    type: "link",
-                    url: "treatment",
-                    isSelectedTab: true
-                }
-            )
+                extensionPointId: "org.bahmni.clinical.consultation.board",
+                icon: "icon-user-md",
+                id: "bahmni.clinical.billing.treatment",
+                label: "Treatment",
+                order: 7,
+                extensionParams: {
+                    "tabConfigName": "tbTabConfig"
+                },
+                requiredPrivilege: "app:clinical:consultationTab",
+                translationKey: "Treatment",
+                type: "link",
+                url: "treatment",
+                isSelectedTab: true
+            }
+            );
         });
 
         it("should set current tab based on the tab config provided", function () {
             location = {
                 path: function () {
                 }, url: function (url) {
-                    return "/default/patient/somePatientUuid/dashboard/treatment?programUuid=someProgramUuid&tabConfigName=nonTbTabConfig"
+                    return "/default/patient/somePatientUuid/dashboard/treatment?programUuid=someProgramUuid&tabConfigName=nonTbTabConfig";
                 }
             };
             var nonTbTab = {
@@ -255,7 +409,7 @@ describe("ConsultationController", function () {
             createController();
             var expectedCurrentBoard = nonTbTab;
             expectedCurrentBoard.isSelectedTab = true;
-            expect(scope.currentBoard).toEqual(expectedCurrentBoard)
+            expect(scope.currentBoard).toEqual(expectedCurrentBoard);
         });
 
         it("should validate the current tab drug orders", function () {
@@ -264,7 +418,6 @@ describe("ConsultationController", function () {
 
             scope.showBoard(1);
             expect(scope.$parent.$broadcast).toHaveBeenCalledWith('event:errorsOnForm');
-
         });
 
         it("should be on currentBoard if click on same tab", function () {
@@ -274,11 +427,10 @@ describe("ConsultationController", function () {
 
             scope.showBoard(1);
             expect(scope.currentBoard.label).toBe('Treatment');
-
         });
     });
 
-    describe("showSaveConfirmDialogConfig",function(){
+    describe("showSaveConfirmDialogConfig", function () {
         it("should stay in current state if 'cancel' is selected", function () {
             expect(state.name).toEqual("patient.dashboard.show");
             scope.cancelTransition();
@@ -359,14 +511,15 @@ describe("ConsultationController", function () {
 
             expect(scope.shouldDisplaySaveConfirmDialogForStateChange).not.toHaveBeenCalled();
         });
-
     });
 
     describe("open consultation", function () {
-
         it("should not broadcast page unload event if not configured to prompt", function () {
             appService.getAppDescriptor.and.returnValue({
-                getConfigValue: function () {
+                getConfigValue: function (value) {
+                    if(value === 'adtNavigationConfig') {
+                        return {forwardUrl: "../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}", "privilege": "app:adt"};
+                    }
                     return false;
                 }
             });
@@ -379,7 +532,10 @@ describe("ConsultationController", function () {
 
         it("should broadcast page unload event if configured to prompt", function () {
             appService.getAppDescriptor.and.returnValue({
-                getConfigValue: function () {
+                getConfigValue: function (value) {
+                    if(value === 'adtNavigationConfig') {
+                        return {forwardUrl: "../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}", "privilege": "app:adt"};
+                    }
                     return true;
                 }
             });
@@ -467,12 +623,137 @@ describe("ConsultationController", function () {
         });
     });
 
-    describe("save",function(){
-        it("should test presave promise",function(){
-
-            scope.consultation = {discontinuedDrugs: [{dateStopped: new Date()}],preSaveHandler: new Bahmni.Clinical.Notifier(),observations:[]};
-
-            scope.save();
+    describe("save", function () {
+        it("should save encounter data", function (done) {
+            scope.consultation = {discontinuedDrugs: [{dateStopped: new Date()}], preSaveHandler: new Bahmni.Clinical.Notifier(), postSaveHandler: new Bahmni.Clinical.Notifier(), observations: [], conditions: [{condition: {}}]};
+            scope.patient = {
+                uuid: "patient-uuid"
+            };
+            diagnosisService.populateDiagnosisInformation.and.returnValue(specUtil.createFakePromise(scope.consultation));
+            scope.save({toState: {}}).then(function () {
+                expect(encounterService.create).toHaveBeenCalled();
+                expect(auditLogService.log).toHaveBeenCalledWith(scope.patient.uuid, "EDIT_ENCOUNTER", {encounterUuid: encounterData.encounterUuid, encounterType: encounterData.encounterType}, "MODULE_LABEL_CLINICAL_KEY");
+                expect(conditionsService.save).toHaveBeenCalledWith(scope.consultation.conditions, "patient-uuid");
+                expect(messagingService.showMessage).toHaveBeenCalledWith('info', "{{'CLINICAL_SAVE_SUCCESS_MESSAGE_KEY' | translate}}");
+                done();
+            });
         });
-    })
+
+        it("should not save encounter data if there errors in form", function (done) {
+            scope.consultation = {discontinuedDrugs: [{dateStopped: new Date()}], preSaveHandler: new Bahmni.Clinical.Notifier(), postSaveHandler: new Bahmni.Clinical.Notifier(), observations: [], conditions: [{condition: {}}], observationForms: [{component: {getValue: function () {
+                return {errors: {}};
+            }}}]};
+            scope.patient = {
+                uuid: "patient-uuid"
+            };
+            scope.$parent = {
+                $parent: {
+                    $broadcast: function () {
+                        return {};
+                    }
+                }
+            };
+            spyOn(scope.$parent.$parent, '$broadcast');
+            diagnosisService.populateDiagnosisInformation.and.returnValue(specUtil.createFakePromise(scope.consultation));
+            scope.save({toState: {}}).then(function () {
+                expect(scope.$parent.$parent.$broadcast).toHaveBeenCalledWith('event:errorsOnForm');
+                done();
+            });
+        });
+
+        it("should save conditions to consultation after encounter save", function (done) {
+            scope.consultation = {
+                discontinuedDrugs: [{dateStopped: new Date()}],
+                preSaveHandler: new Bahmni.Clinical.Notifier(),
+                postSaveHandler: new Bahmni.Clinical.Notifier(),
+                observations: []
+            };
+            var conditions = [ {uuid: undefined, conditionNonCoded: "fever"}];
+            scope.consultation["conditions"] = conditions;
+            scope.patient = {
+                uuid: "patient-uuid"
+            };
+            diagnosisService.populateDiagnosisInformation.and.returnValue(specUtil.simplePromise(scope.consultation));
+            scope.save({toState: {}}).then(function () {
+                expect(encounterService.create).toHaveBeenCalled();
+                expect(conditionsService.save).toHaveBeenCalledWith(conditions, "patient-uuid");
+                expect(messagingService.showMessage).toHaveBeenCalledWith('info', "{{'CLINICAL_SAVE_SUCCESS_MESSAGE_KEY' | translate}}");
+                expect(scope.$parent.consultation.conditions[0].uuid).toEqual("condition-uuid");
+                done();
+            });
+        });
+
+        it("should throw error if save conditions failed after encounter save", function (done) {
+            scope.consultation = {
+                discontinuedDrugs: [{dateStopped: new Date()}],
+                preSaveHandler: new Bahmni.Clinical.Notifier(),
+                postSaveHandler: new Bahmni.Clinical.Notifier(),
+                observations: [],
+                conditions: [{uuid: undefined, conditionNonCoded: "fever"}]
+            };
+            scope.patient = {
+                uuid: "patient-uuid"
+            };
+            diagnosisService.populateDiagnosisInformation.and.returnValue(specUtil.simplePromise(scope.consultation));
+            conditionsService.save.and.callFake(function () {
+                var deferred1 = Q.defer();
+                deferred1.reject("error");
+                return deferred1.promise;
+            });
+            scope.save({toState: {}}).then(function () {
+                expect(encounterService.create).toHaveBeenCalled();
+                expect(conditionsService.save).toHaveBeenCalledWith(scope.consultation.conditions, "patient-uuid");
+                expect(scope.$parent.consultation.conditions[0].uuid).toEqual(undefined);
+                done();
+            });
+        });
+    });
+
+    it("should generate the URL as mentioned in the config", function () {
+        appDescriptor = {
+            formatUrl: function (url) {
+                return url;
+            },
+            getConfigValue: function () {
+                return true;
+            }
+        };
+        scope.adtNavigationConfig = {forwardUrl: "../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}"};
+        appService.getAppDescriptor.and.returnValue(appDescriptor);
+
+        expect(scope.adtNavigationURL()).toEqual("../bedmanagement/#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}");
+    });
+
+    it("should initialize with default adtNavigationConfig if we are not mentioning anything in config", function () {
+        appService.getAppDescriptor.and.returnValue({
+            getConfigValue: function (value) {
+                if(value === 'adtNavigationConfig') {
+                    return {};
+                }
+                return true;
+            }
+        });
+        translate.instant.and.returnValue("Go to IPD Dashboard");
+        createController();
+
+        expect(scope.adtNavigationConfig.privilege).toBe("app:adt");
+        expect(scope.adtNavigationConfig.title).toBe("Go to IPD Dashboard");
+        expect(scope.adtNavigationConfig.forwardUrl).toBe("../adt/#/patient/{{patientUuid}}/visit/{{visitUuid}}/");
+    });
+
+    it("should initialize with adtNavigationConfig if we mention in config", function () {
+        appService.getAppDescriptor.and.returnValue({
+            getConfigValue: function (value) {
+                if(value === 'adtNavigationConfig') {
+                    return {privilege: "app:ipd", title: "Go to ADT Dashboard"};
+                }
+                return true;
+            }
+        });
+        createController();
+
+        expect(scope.adtNavigationConfig.privilege).toBe("app:ipd");
+        expect(scope.adtNavigationConfig.title).toBe("Go to ADT Dashboard");
+        expect(scope.adtNavigationConfig.forwardUrl).toBe("../adt/#/patient/{{patientUuid}}/visit/{{visitUuid}}/");
+    });
 });

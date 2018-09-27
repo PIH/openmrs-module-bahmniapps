@@ -12,6 +12,12 @@ angular.module('bahmni.common.conceptSet')
                 $scope.validationHandler = new Bahmni.ConceptSet.ConceptSetGroupPanelViewValidationHandler($scope.allTemplates);
                 contextChangeHandler.add($scope.validationHandler.validate);
             };
+            $scope.toggleSideBar = function () {
+                $rootScope.showLeftpanelToggle = !$rootScope.showLeftpanelToggle;
+            };
+            $scope.showLeftpanelToggle = function () {
+                return $rootScope.showLeftpanelToggle;
+            };
 
             $scope.togglePref = function (conceptSet, conceptName) {
                 $rootScope.currentUser.toggleFavoriteObsTemplate(conceptName);
@@ -175,7 +181,7 @@ angular.module('bahmni.common.conceptSet')
                 return data.formUuid;
             };
 
-            $timeout(init);
+            init();
         }])
     .directive('conceptSetGroup', function () {
         return {

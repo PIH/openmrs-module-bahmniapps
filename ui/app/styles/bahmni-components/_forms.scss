@@ -195,6 +195,9 @@ form, .form {
             @media screen and (max-width: 850px) and (min-width: 596px) {
               margin-top:13px;
             }
+          @media screen and (max-width: 1024px) {
+            margin-top: 0 ;
+          }
         }
         textarea {
             height: 35px;
@@ -498,8 +501,8 @@ form.submitted-with-error {
 
 .illegalValue, buttons-radio.illegalValue button, concept input:invalid.illegalValue {
   &, &:focus {
-    border: 2px solid darken($clinicalFormInvalid, 30%);
-    background: $clinicalFormInvalid;
+    border: 2px solid darken($clinicalFormInvalid, 30%) !important;
+    background: $clinicalFormInvalid !important;
     outline: 0;
   }
 }
@@ -516,6 +519,9 @@ buttons-radio.illegalValue { border: 0 !important; background: none !important;}
 input[type="time"]{
   padding: 1px 10px;
   margin-left: 2px;
+  @media (max-width: 768px) {
+    padding: 7px 10px;
+  }
 }
 
 @media screen and (-webkit-min-device-pixel-ratio:0) {

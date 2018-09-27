@@ -2,7 +2,7 @@
 
 describe("PatientsListController", function () {
         var _spinner, _patientService, _appService, $bahmniCookieStore, _window, _printer;
-        var controller, scope, findPatientsPromise, searchPatientsPromise, retrospectiveEntryService, offlineService, getRecentPatientsPromise,configurationService;
+        var controller, scope, findPatientsPromise, searchPatientsPromise, retrospectiveEntryService, getRecentPatientsPromise,configurationService, getAppDescriptor;
         var stateParams = { location: "Ganiyari"};
 
         beforeEach(module('bahmni.common.patientSearch'));
@@ -64,29 +64,18 @@ describe("PatientsListController", function () {
                     return {uuid: 1, display: "Location" };
                 }
             });
-            offlineService = jasmine.createSpyObj('offlineService', ['isOfflineApp']);
             configurationService = jasmine.createSpyObj('configurationService', ['getConfigurations']);
             _spinner = jasmine.createSpyObj('spinner', ['forPromise']);
             _spinner.forPromise.and.callFake(function (promiseParam) {
                 return promiseParam;
             });
 
+            getAppDescriptor = jasmine.createSpyObj('getAppDescriptor', ['getExtensions', 'getConfigValue', 'formatUrl']);
+            getAppDescriptor.getExtensions.and.returnValue(appExtensions);
+            getAppDescriptor.getConfigValue.and.returnValue({"recentPatientsDuration": 14});
+            getAppDescriptor.formatUrl.and.returnValue("formattedUrl");
             _appService = jasmine.createSpyObj('appService', ['getAppDescriptor']);
-            _appService.getAppDescriptor.and.returnValue(
-                {
-                    'getExtensions': function () {
-                        return appExtensions;
-                    },
-                    'getConfigValue': function () {
-                        return {
-                            "recentPatientsDuration": 14
-                        }
-                    },
-                    'formatUrl': function () {
-                        return "formattedUrl"
-                    }
-                });
-
+            _appService.getAppDescriptor.and.returnValue(getAppDescriptor);
             _patientService = jasmine.createSpyObj('patientService', ['findPatients', 'search','getRecentPatients']);
             _printer = jasmine.createSpyObj('printer', ['printFromScope']);
             _window = jasmine.createSpyObj('$window', ['open', 'location']);
@@ -97,7 +86,6 @@ describe("PatientsListController", function () {
             _patientService.search.and.returnValue(searchPatientsPromise);
             _patientService.getRecentPatients.and.returnValue(getRecentPatientsPromise);
             _printer.printFromScope.and.returnValue(true);
-            offlineService.isOfflineApp.and.returnValue(true);
             configurationService.getConfigurations.and.returnValue(specUtil.simplePromise({identifierTypesConfig:[{primary:true,name:"Bahmni Id"}]}));
         });
 
@@ -122,7 +110,6 @@ describe("PatientsListController", function () {
                     $stateParams: stateParams,
                     retrospectiveEntryService: retrospectiveEntryService,
                     $bahmniCookieStore: $bahmniCookieStore,
-                    offlineService: offlineService,
                     printer: _printer,
                     configurationService:configurationService
                 });
@@ -134,7 +121,7 @@ describe("PatientsListController", function () {
                 scope.$apply(setUp);
 
                 expect(scope.search.searchType).toEqual({ name : 'All active patients', display : 'All active patients', handler : 'emrapi.sqlSearch.activePatients', forwardUrl : undefined, id : 'bahmni.clinical.patients.allPatients', params : undefined, refreshTime : '10', view : 'tile',
-                    showPrint : false, printHtmlLocation : null, searchColumns : undefined, additionalParams : undefined, translationKey : undefined, patientCount : '...' });
+                    showPrint : false, printHtmlLocation : null, searchColumns : undefined, additionalParams : undefined, translationKey : undefined, patientCount : '...', linkColumn : undefined, links : undefined});
                 expect(_patientService.findPatients).toHaveBeenCalled();
 
                 findPatientsPromise.callThenCallBack({data: patients});
@@ -203,13 +190,12 @@ describe("PatientsListController", function () {
                 expect(_window.open).toHaveBeenCalled();
             });
 
-            it('should call window location when forward url is not given', function(){
+        it('should not call window location when forward url is not given', function(){
                 _window.location.and.returnValue(true);
                 var patient = { patientUuid : "patientUuid"};
                 scope.forwardPatient(patient);
-                expect(_window.location).toEqual("formattedUrl");
-            });
-
+                expect(getAppDescriptor.formatUrl).not.toHaveBeenCalledWith(undefined, jasmine.any(Object), true);
+        });
 
         });
 
@@ -230,22 +216,45 @@ describe("PatientsListController", function () {
                 expect(headings).toEqual(['emr_id', 'treatment']);
             });
 
-            it('should print page from the config', function(){
+         it('should print page from the config', function(){
                 scope.search.searchType.printHtmlLocation = '/bahmni_config/openmrs/apps/dataintegrity/patientListPrint.html';
                 scope.printPage();
                 expect(_printer.printFromScope).toHaveBeenCalled();
+         });
+    });
+
+    describe("isHeadingOfLinkColumn", function () {
+        beforeEach(function () {
+            scope.$apply(setUp);
+        });
+
+        describe("old link behaviour syntax", function () {
+            it("should accept the link column from the config, when respective config present", function () {
+                // var search = {searchType: {linkColumn: "Status"}};
+                scope.search = {searchType: {linkColumn: "Status"}};
+                var heading = "Status";
+                var headingOfLinkColumn = scope.isHeadingOfLinkColumn(heading);
+                expect(headingOfLinkColumn).toBeTruthy()
+            });
+
+            it("should accept the default link column, when nothing specified in the config", function () {
+                scope.search = {searchType: {}};
+                // scope.$apply(setUp);
+                var heading = "identifier";
+                var headingOfLinkColumn = scope.isHeadingOfLinkColumn(heading);
+                expect(headingOfLinkColumn).toBeTruthy()
+            });
+
+            it("should not have a link on the column, when no match for heading found in config and default column list", function () {
+                scope.search = {searchType: {}};
+                // scope.$apply(setUp);
+                var heading = "RandomColumn";
+                var headingOfLinkColumn = scope.isHeadingOfLinkColumn(heading);
+                expect(headingOfLinkColumn).toBeFalsy()
             });
         });
 
-    describe("Offline",function(){
-        beforeEach(function(){
-            scope.$apply(setUp);
-        });
-
-        it('should show recent patients in all tab for offline app', function () {
-            scope.$apply(setUp);
-            expect(_patientService.findPatients).toHaveBeenCalled();
-
+        it("should indicate if specified column in a link", function () {
             scope.search.searchType = {
                 "id": "bahmni.clinical.patients.all",
                 "extensionPointId": "org.bahmni.patient.search",
@@ -254,22 +263,161 @@ describe("PatientsListController", function () {
                     "display": "All patients",
                     "refreshTime": "10"
                 },
+                "forwardUrl": "#/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                "linkColumn": "action",
+                "links": [
+                    {
+                        "url": "#/programs/patient/{{patientUuid}}/consultationContext",
+                        "linkColumn": "status"
+                    },
+                    {
+                        "url": "#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                        "linkColumn": "bedStatus",
+                        "newTab": true
+                    }
+                ],
+                "label": "All patients",
+                "order": 1,
+                "requiredPrivilege": "app:clinical"
+            };
+            var linkColumnStatus = scope.isHeadingOfLinkColumn("status");
+            expect(linkColumnStatus).toBeTruthy();
+            var linkColumnBedStatus = scope.isHeadingOfLinkColumn("bedStatus");
+            expect(linkColumnBedStatus).toBeTruthy();
+            var linkColumn = scope.isHeadingOfLinkColumn("action");
+            expect(linkColumn).toBeFalsy();
+            var notConfiguredLinkColumn = scope.isHeadingOfLinkColumn( "someRandomColumn");
+            expect(notConfiguredLinkColumn).toBeFalsy();
+        });
+    });
+
+    describe("forwardPatient", function () {
+        beforeEach(function () {
+            scope.$apply(setUp);
+        });
+
+        it("should take the forward url from the links of searchType, if it is configured", function () {
+            scope.search.searchType = {
+                "id": "bahmni.clinical.patients.all",
+                "extensionPointId": "org.bahmni.patient.search",
+                "type": "config",
+                "extensionParams": {
+                    "display": "All patients",
+                    "refreshTime": "10"
+                },
+                "forwardUrl": "#/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                "linkColumn": "action",
+                "links": [
+                    {
+                        "url": "#/programs/patient/{{patientUuid}}/consultationContext",
+                        "linkColumn": "status"
+                    },
+                    {
+                        "url": "#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                        "linkColumn": "bedStatus",
+                        "newTab": true
+                    }
+                ],
                 "label": "All patients",
                 "order": 1,
                 "requiredPrivilege": "app:clinical"
             };
 
-
             scope.$apply();
 
-            expect(offlineService.isOfflineApp).toHaveBeenCalled();
-            expect(_patientService.getRecentPatients).toHaveBeenCalled();
+            var patient = {identifier: 'GAN1234', name: 'Ram Singh', uuid: 'p-uuid-1', activeVisitUuid: 'v-uuid-1'};
+            scope.forwardPatient(patient, "status");
+            expect(getAppDescriptor.formatUrl).toHaveBeenCalledWith("#/programs/patient/{{patientUuid}}/consultationContext", jasmine.any(Object), true);
+            expect(_window.open).toHaveBeenCalledWith("formattedUrl", "_self");
+            scope.forwardPatient(patient, "bedStatus");
+            expect(getAppDescriptor.formatUrl).toHaveBeenCalledWith("#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}", jasmine.any(Object), true);
+            expect(_window.open).toHaveBeenCalledWith("formattedUrl", "_blank");
         });
 
-        it('should not display tab in offline app if offline is set to false in tab config', function(){
-            expect(scope.search.searchTypes.length).toBe(2);
+        it("should take the forwardUrl from the searchType", function () {
+            scope.search.searchType = {
+                "id": "bahmni.clinical.patients.all",
+                "extensionPointId": "org.bahmni.patient.search",
+                "type": "config",
+                "extensionParams": {
+                    "display": "All patients",
+                    "refreshTime": "10"
+                },
+                "forwardUrl": "#/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                "linkColumn": "action",
+                "label": "All patients",
+                "order": 1,
+                "requiredPrivilege": "app:clinical"
+            };
+
+            scope.$apply();
+            var patient = {identifier: 'GAN1234', name: 'Ram Singh', uuid: 'p-uuid-1', activeVisitUuid: 'v-uuid-1'};
+            scope.forwardPatient(patient, "action");
+            expect(getAppDescriptor.formatUrl).toHaveBeenCalledWith("#/patient/{{patientUuid}}/visit/{{visitUuid}}", jasmine.any(Object), true);
+            expect(_window.open).toHaveBeenCalledWith("formattedUrl", "_self");
         });
 
+        it("should take the forwardUrl from the query results, if one returned from the query", function () {
+            scope.search.searchType = {
+                "id": "bahmni.clinical.patients.all",
+                "extensionPointId": "org.bahmni.patient.search",
+                "type": "config",
+                "extensionParams": {
+                    "display": "All patients",
+                    "refreshTime": "10"
+                },
+                "forwardUrl": "#/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                "linkColumn": "action",
+                "label": "All patients",
+                "order": 1,
+                "requiredPrivilege": "app:clinical"
+            };
+
+            scope.$apply();
+            var patient = {identifier: 'GAN1234', name: 'Ram Singh', uuid: 'p-uuid-1', activeVisitUuid: 'v-uuid-1', forwardUrl: "forwardUrl from the query"};
+            scope.forwardPatient(patient, "action");
+            expect(getAppDescriptor.formatUrl).toHaveBeenCalledWith("forwardUrl from the query", jasmine.any(Object), true);
+            expect(_window.open).toHaveBeenCalledWith("formattedUrl", "_blank");
+        });
+
+        it("should take the forwardUrl from the query results and have extra linkColumns specified in the config", function () {
+            scope.search.searchType = {
+                "id": "bahmni.clinical.patients.all",
+                "extensionPointId": "org.bahmni.patient.search",
+                "type": "config",
+                "extensionParams": {
+                    "display": "All patients",
+                    "refreshTime": "10"
+                },
+                "forwardUrl": "#/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                "linkColumn": "action",
+                "links": [
+                    {
+                        "url": "#/programs/patient/{{patientUuid}}/consultationContext",
+                        "linkColumn": "status"
+                    },
+                    {
+                        "url": "#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}",
+                        "linkColumn": "bedStatus",
+                        "newTab": true
+                    }
+                ],
+                "label": "All patients",
+                "order": 1,
+                "requiredPrivilege": "app:clinical"
+            };
+
+            scope.$apply();
+            var patient = {identifier: 'GAN1234', name: 'Ram Singh', uuid: 'p-uuid-1', activeVisitUuid: 'v-uuid-1', forwardUrl: "forwardUrl from the query"};
+            scope.forwardPatient(patient, "action");
+            expect(getAppDescriptor.formatUrl).toHaveBeenCalledWith("forwardUrl from the query", jasmine.any(Object), true);
+            expect(_window.open).toHaveBeenCalledWith("formattedUrl", "_blank");
+            scope.forwardPatient(patient, "status");
+            expect(getAppDescriptor.formatUrl).toHaveBeenCalledWith("#/programs/patient/{{patientUuid}}/consultationContext", jasmine.any(Object), true);
+            expect(_window.open).toHaveBeenCalledWith("formattedUrl", "_self");
+            scope.forwardPatient(patient, "bedStatus");
+            expect(getAppDescriptor.formatUrl).toHaveBeenCalledWith("#/bedManagement/patient/{{patientUuid}}/visit/{{visitUuid}}", jasmine.any(Object), true);
+            expect(_window.open).toHaveBeenCalledWith("formattedUrl", "_blank");
+        });
     });
-    }
-); 
+});

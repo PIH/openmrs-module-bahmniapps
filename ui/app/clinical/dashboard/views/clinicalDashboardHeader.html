@@ -5,8 +5,8 @@
         <div class="opd-header-bottom tabs">
             <bm-back-links></bm-back-links>
             <recent-patients ng-if="enablePatientSearch()"></recent-patients>
-            <a show-if-privilege="app:adt" ng-click= "displayConfirmationDialog($event)" class="back-btn"  ng-href="../adt/#/patient/{{patient.uuid}}/visit/{{consultation.visitUuid}}/"
-               title="Go to IPD dashboard">
+            <a show-if-privilege="{{adtNavigationConfig.privilege}}" ng-click= "displayConfirmationDialog($event)" class="back-btn" ng-href="{{adtNavigationURL(consultation.uuid)}}"
+               title="{{adtNavigationConfig.title}}">
                 <i class="fa fa-bed fa-white"></i>
             </a>
             <a class="back-btn-link" id="dashboard-link" accesskey="d" ng-click="gotoPatientDashboard()" title="Back to {{patient.name}} Dashboard">
@@ -27,21 +27,6 @@
             <button class="toggle-patient" ng-click="toggleControlPanel()" ng-class="{'shift': showControlPanel, 'hide-ipad': availableBoards }">
                 <i class="fa fa-bars fa-white fa-large"></i>
             </button>
-            <div class="fr">
-                <div ng-if="isOfflineApp" class="offline-sync fl" ng-controller="AppUpdateController">
-                    <button class="btn" ng-if="isUpdateAvailable()" ng-click="update()">Update</button>
-                </div>
-
-                <div class="fr offlin-sync-wrapper" ng-controller="PatientListHeaderController">
-                    <button class="btn fl  offline-sync" ng-click="sync()" ng-show="isOfflineApp && !isSyncing">
-                        {{::'HEADER_LABEL_SYNC_KEY' | translate}}
-                    </button>
-                    <button class="btn fl offline-sync offline-sync-image" ng-show="isOfflineApp && isSyncing" disabled>
-                        <!-- <i class="fa fa-refresh"></i> -->
-                        <img src="../images/sync.gif" />
-                    </button>
-                </div>
-            </div>
             <button class="confirm save-consultation" ng-show="availableBoards" single-click="save()" accesskey="{{'SAVE_ACCESS_KEY' | translate}}" ng-class="{'hideSaveText':availableBoards.length > 6}">
                 <i class="fa fa-save"></i>
                 <span class="text" ng-bind-html="'CLINICAL_SAVE_TRANSLATION_KEY'| translate"></span>
@@ -56,8 +41,8 @@
         <div class="opd-header-bottom tabs">
             <bm-back-links></bm-back-links>
             <recent-patients></recent-patients>
-            <a show-if-privilege="app:adt" class="back-btn" ng-click= "displayConfirmationDialog($event)" ng-href="../adt/#/patient/{{patient.uuid}}/visit/{{visitHistory.activeVisit.uuid}}/"
-               title="Go to IPD Dashboard">
+            <a show-if-privilege="{{adtNavigationConfig.privilege}}" ng-click= "displayConfirmationDialog($event)" class="back-btn" ng-href="{{adtNavigationURL(visitHistory.activeVisit.uuid)}}"
+               title="{{adtNavigationConfig.title}}">
                 <i class="fa fa-bed fa-white"></i>
             </a>
             <div class="desktop-menu fl">
@@ -99,8 +84,8 @@
             <div class="dashboard-header-right-wrapper">
                 <div ng-if="::clinicalDashboardConfig.quickPrints" class="fl print-list-wrapper" toggle="togglePrintList">
                     <button ng-if="clinicalDashboardConfig.showPrint()" class="dialog-button-group"
-                            accesskey="{{'CLINICAL_PRINT_ACCESS_KEY'| translate}}" ng-bind-html="'CLINICAL_PRINT_TRANSLATION_KEY'|translate">
-                        <i class="fa fa-print"></i>
+                            accesskey="{{'CLINICAL_PRINT_ACCESS_KEY'| translate}}">
+                        <span ng-bind-html="'CLINICAL_PRINT_TRANSLATION_KEY'|translate"></span> <i class="fa fa-print"></i> <i class="fa fa-caret-down"></i>
                     </button>
                     <ul>
                         <li accesskey="{{::tab.printing.shortcutKey}}" ng-repeat="tab in ::printList" ng-click="::printDashboard(tab)">
@@ -116,7 +101,7 @@
                 <div class="dashboard-date-picker" ng-controller="PatientListHeaderController">
                     <div class="retro-date-widget-wrapper fr">
                         <div class="retro-date-widget-header fr">
-                            <button ng-click="popUpHandler()" show-if-privilege="{{retrospectivePrivilege}},{{onBehalfOfPrivilege}},{{locationPickerPrivilege}}" ng-if="getTitle()">{{ getTitle() }}</button>
+                            <button ng-click="popUpHandler()" show-if-privilege="{{retrospectivePrivilege}},{{onBehalfOfPrivilege}},{{locationPickerPrivilege}}" ng-if="getTitle()">{{ getTitle() | translate }}</button>
 
                         </div>
                     </div>
@@ -128,20 +113,7 @@
                     accesskey="{{'CONSULTATION_SHORTCUT_KEY' | translate}}"
                     ng-bind-html="'CONSULTATION_TAB_KEY' | translate">
                  </a>
-
-                <div class="fl offlin-sync-wrap" ng-controller="PatientListHeaderController">
-                     <div ng-if="isOfflineApp" class="offline-sync fl" ng-controller="AppUpdateController">
-                        <button class="btn" ng-if="isUpdateAvailable()" ng-click="update()">Update</button>
-                     </div>
-                    <button class="btn fl  offline-sync" ng-click="sync()" ng-show="isOfflineApp && !isSyncing">
-                      {{::'HEADER_LABEL_SYNC_KEY' | translate}}
-                    </button>
-                    <button class="btn fl offline-sync offline-sync-image" ng-show="isOfflineApp && isSyncing" disabled>
-                      <!-- <i class="fa fa-refresh"></i> -->
-                      <img src="../images/sync.gif" />
-                    </button>
-                </div>
-                <a class="btn--right btn--success " title="Open in new window"
+                <a class="btn--right btn--success " title="{{'OPEN_IN_NEW_WINDOW'|translate}}"
                    ng-if="visitHistory.activeVisit || retrospectiveEntry"
                    ng-click="openConsultationInNewTab()"><i class="fa fa-external-link"></i></a>
            </span>

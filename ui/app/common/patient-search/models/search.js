@@ -9,6 +9,7 @@ Bahmni.Common.PatientSearch.Search = function (searchTypes) {
     self.searchResults = [];
     self.activePatients = [];
     self.navigated = false;
+    self.links = self.searchType && self.searchType.links ? self.searchType.links : [];
     self.searchColumns = self.searchType && self.searchType.searchColumns ? self.searchType.searchColumns : ["identifier", "name"];
     angular.forEach(searchTypes, function (searchType) {
         searchType.patientCount = "...";
@@ -22,6 +23,8 @@ Bahmni.Common.PatientSearch.Search = function (searchTypes) {
             self.searchType = searchType;
             self.activePatients = [];
             self.searchResults = [];
+            self.links = self.searchType && self.searchType.links ? self.searchType.links : [];
+            self.searchColumns = self.searchType && self.searchType.searchColumns ? self.searchType.searchColumns : ["identifier", "name"];
         }
         self.markPatientEntry();
     };
@@ -45,7 +48,7 @@ Bahmni.Common.PatientSearch.Search = function (searchTypes) {
     self.updateSearchResults = function (patientList) {
         self.updatePatientList(patientList);
         if (self.activePatients.length === 0 && self.searchParameter != '') {
-            self.noResultsMessage = "No results found";
+            self.noResultsMessage = "NO_RESULTS_FOUND";
         } else {
             self.noResultsMessage = null;
         }
@@ -86,7 +89,7 @@ Bahmni.Common.PatientSearch.Search = function (searchTypes) {
 
     function mapPatient (patient) {
         if (patient.name || patient.givenName || patient.familyName) {
-            patient.name = patient.name || (patient.givenName + ' ' + patient.familyName);
+            patient.name = patient.name || (patient.givenName + (patient.familyName ? ' ' + patient.familyName : ""));
         }
         patient.display = _.map(self.searchColumns, function (column) {
             return patient[column];

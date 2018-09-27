@@ -23,6 +23,15 @@ angular.module('bahmni.common.displaycontrol.obsVsObsFlowSheet').directive('obsT
                 });
             };
 
+            const removeEmptyRecords = function (records) {
+                records.headers = _.filter(records.headers, function (header) {
+                    return !(_.every(records.rows, function (record) {
+                        return _.isEmpty(record.columns[header.name]);
+                    }));
+                });
+                return records;
+            };
+
             var getObsInFlowSheet = function () {
                 return observationsService.getObsInFlowSheet(patient.uuid, $scope.config.templateName,
                     $scope.config.groupByConcept, $scope.config.orderByConcept, $scope.config.conceptNames, $scope.config.numberOfVisits,
@@ -34,7 +43,13 @@ angular.module('bahmni.common.displaycontrol.obsVsObsFlowSheet').directive('obsT
                         });
                         obsInFlowSheet.headers = _.without(obsInFlowSheet.headers, groupByElement);
                         obsInFlowSheet.headers.unshift(groupByElement);
+                        if ($scope.config.hideEmptyRecords) {
+                            obsInFlowSheet = removeEmptyRecords(obsInFlowSheet);
+                        }
                         $scope.obsTable = obsInFlowSheet;
+                        if (_.isEmpty($scope.obsTable.rows)) {
+                            $scope.$emit("no-data-present-event");
+                        }
                     });
             };
 
@@ -89,6 +104,7 @@ angular.module('bahmni.common.displaycontrol.obsVsObsFlowSheet').directive('obsT
 
             $scope.commafy = function (observations) {
                 var list = [];
+                var config = conceptSetUiConfigService.getConfig();
                 var unBoolean = function (boolValue) {
                     return boolValue ? $translate.instant("OBS_BOOLEAN_YES_KEY") : $translate.instant("OBS_BOOLEAN_NO_KEY");
                 };
@@ -102,7 +118,7 @@ angular.module('bahmni.common.displaycontrol.obsVsObsFlowSheet').directive('obsT
 
                     if (observations[index].concept.dataType === "Date") {
                         var conceptName = observations[index].concept.name;
-                        if (conceptName && conceptSetUiConfigService.getConfig()[conceptName] && conceptSetUiConfigService.getConfig()[conceptName].displayMonthAndYear == true) {
+                        if (conceptName && config[conceptName] && config[conceptName].displayMonthAndYear == true) {
                             name = Bahmni.Common.Util.DateUtil.getDateInMonthsAndYears(name);
                         } else {
                             name = Bahmni.Common.Util.DateUtil.formatDateWithoutTime(name);
@@ -112,11 +128,15 @@ angular.module('bahmni.common.displaycontrol.obsVsObsFlowSheet').directive('obsT
                     list.push(name);
                 }
 
-                return list.join(', ');
+                return list.join($scope.config && $scope.config.obsDelimiter ? $scope.config.obsDelimiter : ', ');
             };
 
             $scope.isMonthAvailable = function () {
                 return $scope.obsTable.rows[0].columns['Month'] != null;
+            };
+
+            $scope.hasPDFAsValue = function (data) {
+                return data.value ? data.value.indexOf('.pdf') > 0 : false;
             };
 
             spinner.forPromise(init(), element);

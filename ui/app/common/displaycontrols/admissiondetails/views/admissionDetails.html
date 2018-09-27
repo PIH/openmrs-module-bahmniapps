@@ -1,7 +1,7 @@
 <section id="admissionDetails" class="block">
     <h2 class="section-title"> {{::params | titleTranslate}}</h2>
     <div>
-        <div ng-if="!visitSummary.admissionDetails && !visitSummary.dischargeDetails">
+        <div ng-if="!isDataPresent()">
             <div class="placeholder-text">{{::'NO_ADMISSION_DETAILS_MESSAGE' | translate}}</div>
         </div>
         <table class="dashboard-table history-diagnosis" ng-if="::visitSummary.admissionDetails || visitSummary.dischargeDetails">
@@ -12,7 +12,7 @@
             </tr>
             <tr class="view-past">
                 <td class="name">
-                    <span class="disposition-state">Admission Date</span>
+                    <span class="disposition-state">{{ 'ADMISSION_DATE_LABEL'|translate }}</span>
                 </td>
                 <td class="value" ng-if="::visitSummary.admissionDetails">
                     {{::visitSummary.admissionDetails.date | bahmniDate}}
@@ -35,7 +35,7 @@
             </tr>
             <tr class="view-past" ng-if="::visitSummary.dischargeDetails">
                 <td class="name">
-                    <span class="disposition-state">Discharge Date</span>
+                    <span class="disposition-state">{{ 'DISCHARGE_DATE_LABEL'|translate }}</span>
                 </td>
                 <td class="value">
                     {{::visitSummary.dischargeDetails.date| bahmniDate}}
